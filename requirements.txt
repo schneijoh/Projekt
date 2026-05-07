@@ -1,15 +1,7 @@
 streamlit
-torch
-torchvision
-torchaudio
---index-url https://download.pytorch.org/whl/cu121
-
 transformers
 diffusers
 accelerate
-bitsandbytes
-sentence-transformers
 pillow
-soundfile
-peft
 huggingface_hub
+peft
