@@ -11,5 +11,5 @@ bitsandbytes
 sentence-transformers
 pillow
 soundfile
-huggingface_hub
 peft
+huggingface_hub
