@@ -1,86 +1,65 @@
 import streamlit as st
-from PIL import Image
-import torch
 from diffusers import FluxPipeline
-import os
+import torch
 
-# ====================== CONFIG ======================
 st.set_page_config(page_title="HockeyAI Studio", page_icon="🏑", layout="wide")
 
-st.title("🏑 HockeyAI Studio - Lokale Version")
-st.caption("FLUX.1-schnell läuft lokal auf deinem PC")
+st.title("🏑 HockeyAI Studio")
+st.caption("FLUX.1-schnell lokal auf Spaces")
 
-# ====================== MODEL LADEN ======================
 @st.cache_resource
 def load_flux():
-    with st.spinner("Lade FLUX.1-schnell... (das kann beim ersten Mal 2-5 Minuten dauern)"):
+    with st.spinner("Lade FLUX.1-schnell... Dies kann beim ersten Mal 3-8 Minuten dauern"):
         pipe = FluxPipeline.from_pretrained(
             "black-forest-labs/FLUX.1-schnell",
-            torch_dtype=torch.bfloat16 if torch.cuda.is_available() else torch.float32,
-            device_map="balanced" if torch.cuda.is_available() else None,
+            torch_dtype=torch.bfloat16,
+            device_map="balanced",
+            low_cpu_mem_usage=True,
         )
-        if torch.cuda.is_available():
-            pipe.enable_model_cpu_offload()   # Spart VRAM
+        pipe.enable_model_cpu_offload()
         return pipe
 
 pipe = load_flux()
 
-# ====================== TABS ======================
-tab1, tab2 = st.tabs(["🎮 GameDay Story Generator", "📸 Freie Bildgenerierung"])
+st.success("✅ FLUX erfolgreich geladen!")
+
+tab1, tab2 = st.tabs(["GameDay Stories", "Freie Generierung"])
 
 with tab1:
     st.subheader("GameDay Story Generator")
-    
-    col1, col2 = st.columns(2)
-    with col1:
-        score = st.text_input("Ergebnis", "4:2")
-        opponent = st.text_input("Gegner", "Mannheimer HC")
-    with col2:
-        scorers = st.text_area("Torschützen", "Lisa Müller - 2\nAnna Schmidt - 1")
-        style = st.selectbox("Stil", ["Dramatisch", "Energetisch", "Clean & Modern", "Cinematic"])
+    score = st.text_input("Ergebnis", "4:2")
+    opponent = st.text_input("Gegner", "Mannheimer HC")
+    scorers = st.text_area("Torschützen", "Lisa Müller - 2")
 
-    prompt_base = f"Feldhockey Spiel, {score} Sieg gegen {opponent}, Torschützen: {scorers}, grüner Kunstrasen, Action"
-
-    if st.button("🚀 Stories mit FLUX generieren", type="primary"):
+    if st.button("4 Stories generieren", type="primary"):
         with st.spinner("FLUX generiert Bilder..."):
+            base_prompt = f"field hockey, score {score} vs {opponent}, {scorers}, green turf, dynamic action, instagram story 9:16"
+            
             for i in range(4):
-                full_prompt = f"{prompt_base}, {style.lower()} style, instagram story format, high quality"
-                
                 image = pipe(
-                    prompt=full_prompt,
+                    prompt=base_prompt,
                     height=1024,
-                    width=576,      # 9:16 für Stories
-                    num_inference_steps=4,   # Schnell-Modell braucht nur wenige Steps
+                    width=576,
+                    num_inference_steps=4,
                     guidance_scale=3.5,
+                    max_sequence_length=512,
                 ).images[0]
                 
-                st.image(image, caption=f"Story {i+1} - {score} vs {opponent}", use_column_width=True)
+                st.image(image, caption=f"Story {i+1} — {score} vs {opponent}", use_column_width=True)
 
 with tab2:
-    st.subheader("Freie Bildgenerierung")
-    custom_prompt = st.text_area("Dein Prompt", 
-        "Dramatisches Strafeckentor im Feldhockey, grüner Kunstrasen, golden hour, cinematic lighting, dynamic action",
-        height=100)
+    st.subheader("Eigenen Prompt")
+    prompt = st.text_area("Dein Prompt", 
+        "dramatic field hockey penalty corner goal, green artificial turf, cinematic lighting, dynamic", 
+        height=120)
     
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        height = st.selectbox("Höhe", [1024, 768, 512], index=0)
-    with col2:
-        width = st.selectbox("Breite", [576, 1024, 768], index=0)
-    with col3:
-        steps = st.slider("Inference Steps", 1, 8, 4)
-    
-    if st.button("Bild mit FLUX generieren"):
-        with st.spinner("Generiere Bild..."):
+    if st.button("Bild generieren"):
+        with st.spinner("Generiere..."):
             image = pipe(
-                prompt=custom_prompt,
-                height=height,
-                width=width,
-                num_inference_steps=steps,
+                prompt=prompt,
+                height=1024,
+                width=576,
+                num_inference_steps=4,
                 guidance_scale=3.5,
             ).images[0]
-            
-            st.image(image, caption="Generiert mit FLUX.1-schnell", use_column_width=True)
-
-st.divider()
-st.caption("Lokale Version • FLUX.1-schnell • GPU benötigt")
+            st.image(image, use_column_width=True)
