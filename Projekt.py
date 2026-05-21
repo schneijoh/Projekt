@@ -1,16 +1,16 @@
 import streamlit as st
-import os
 
-st.title("Token Test")
+st.title("🏑 HockeyAI Studio - Token Test")
 
-token = os.getenv("HF_TOKEN")
+# Token aus secrets.toml laden
+token = st.secrets.get("HF_TOKEN")
 
-if token:
-    st.success("✅ Token wurde gefunden!")
-    st.write("Token beginnt mit:", token[:10] + "...")
+if token and token.startswith("hf_"):
+    st.success("✅ Token wurde erfolgreich geladen!")
+    st.write("Token beginnt mit:", token[:15] + "...")
 else:
-    st.error("❌ Token wurde NICHT gefunden")
-    st.write("os.getenv('HF_TOKEN') = None")
+    st.error("❌ Token konnte nicht geladen werden")
+    st.write("Aktueller Token-Wert:", token)
 
 st.write("---")
-st.write("Alle Secrets:", os.environ.keys())
+st.info("Stelle sicher, dass die Datei `.streamlit/secrets.toml` existiert")
