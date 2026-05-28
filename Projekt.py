@@ -3,18 +3,17 @@ from huggingface_hub import InferenceClient
 
 st.set_page_config(page_title="HockeyAI Studio", page_icon="🏑", layout="wide")
 
-# Dein Token
 HF_TOKEN = "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"
 
 client = InferenceClient(token=HF_TOKEN)
 
 st.title("🏑 HockeyAI Studio")
-st.caption("Stabile Version • SDXL Lightning")
+st.caption("Stabile Version • Stable Diffusion XL")
 
-tab1, tab2, tab3 = st.tabs(["🎮 GameDay Blitz", "📸 Highlight Creator", "💡 Ideen & Reels"])
+tab1, tab2, tab3 = st.tabs(["🎮 GameDay Blitz", "📸 Highlight Creator", "💡 Ideen"])
 
 with tab1:
-    st.subheader("GameDay Blitz - Story Pack")
+    st.subheader("GameDay Blitz")
     
     col1, col2 = st.columns(2)
     with col1:
@@ -22,48 +21,43 @@ with tab1:
         opponent = st.text_input("Gegner", "Mannheimer HC")
     with col2:
         scorers = st.text_area("Torschützen", "Lisa Müller - 2\nAnna Schmidt - 1")
-        moments = st.text_area("Besondere Momente", "2 starke Strafecken • Comeback")
 
-    if st.button("🚀 4 Stories generieren", type="primary", use_container_width=True):
-        with st.spinner("Generiere stabile Bilder..."):
-            base_prompt = f"field hockey, final score {score} vs {opponent}, {scorers}, green artificial turf, dynamic action, instagram story format, high quality"
+    if st.button("🚀 Stories generieren", type="primary", use_container_width=True):
+        with st.spinner("Generiere Bilder..."):
+            base = f"field hockey match, score {score} vs {opponent}, {scorers}, green artificial turf, dynamic action, instagram story"
             
             for i in range(4):
-                prompt = f"{base_prompt}, cinematic lighting, vibrant colors, professional sports photography"
+                prompt = f"{base}, cinematic lighting, professional sports photo, high quality"
                 
                 image = client.text_to_image(
                     prompt=prompt,
-                    model="ByteDance/SDXL-Lightning",
+                    model="stabilityai/stable-diffusion-xl-base-1.0",   # Stabileres Modell
                     width=576,
                     height=1024,
-                    num_inference_steps=4,
+                    num_inference_steps=30,
                     guidance_scale=7.5
                 )
-                st.image(image, caption=f"Story {i+1} — {score} vs {opponent}", use_column_width=True)
+                st.image(image, caption=f"Story {i+1}", use_column_width=True)
 
 with tab2:
     st.subheader("Highlight Creator")
-    uploaded_file = st.file_uploader("Foto hochladen", type=["jpg", "png", "jpeg"])
-    
-    if uploaded_file:
-        st.image(uploaded_file, caption="Originalbild", width=600)
-        extra = st.text_input("Zusätzlicher Stil", "dramatic cinematic lighting, epic")
-        
-        if st.button("Episch machen"):
-            with st.spinner("Generiere..."):
-                prompt = f"field hockey action scene, {extra}, green turf, high quality, cinematic"
-                image = client.text_to_image(prompt, model="ByteDance/SDXL-Lightning", width=576, height=1024)
-                st.image(image, caption="Generiertes Highlight")
+    if st.button("Test Bild generieren"):
+        with st.spinner("Generiere..."):
+            image = client.text_to_image(
+                "dramatic field hockey goal celebration on green turf, cinematic lighting",
+                model="stabilityai/stable-diffusion-xl-base-1.0",
+                width=576,
+                height=1024
+            )
+            st.image(image)
 
 with tab3:
-    st.subheader("Reel & Content Ideen")
+    st.subheader("Reel Ideen")
     if st.button("Ideen generieren"):
-        with st.spinner("Llama generiert Ideen..."):
-            response = client.text_generation(
-                f"Erstelle 8 kreative und kurze Instagram Reel und Story Ideen für ein Feldhockey Spiel. Ergebnis: {score} gegen {opponent}.",
-                model="meta-llama/Llama-3.1-8B-Instruct",
-                max_tokens=600
-            )
-            st.write(response)
+        response = client.text_generation(
+            "Gib mir 6 gute Reel-Ideen für ein gewonnenes Feldhockey-Spiel",
+            model="meta-llama/Llama-3.1-8B-Instruct"
+        )
+        st.write(response)
 
-st.caption("Stabile Version • SDXL Lightning")
+st.caption("Stabile Version mit SDXL")
