@@ -8,7 +8,7 @@ HF_TOKEN = "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"
 client = InferenceClient(token=HF_TOKEN)
 
 st.title("🏑 HockeyAI Studio")
-st.caption("Test mit bekannt stabilem Modell")
+st.caption("Stabile Version - Working Model")
 
 tab1, tab2 = st.tabs(["🎮 GameDay Blitz", "Test"])
 
@@ -22,38 +22,40 @@ with tab1:
     with col2:
         scorers = st.text_area("Torschützen", "Lisa Müller - 2\nAnna Schmidt - 1")
 
-    if st.button("🚀 2 Stories generieren", type="primary"):
+    if st.button("🚀 2 Stories generieren", type="primary", use_container_width=True):
         with st.spinner("Generiere mit stabilem Modell..."):
-            base = f"field hockey match, score {score} vs {opponent}, {scorers}, green turf, dynamic action"
+            base = f"field hockey, score {score} vs {opponent}, {scorers}, green turf, dynamic action, instagram story"
 
             for i in range(2):
-                prompt = f"{base}, cinematic lighting, professional sports photo, high quality"
+                prompt = f"{base}, cinematic lighting, professional sports photography, high quality"
                 
                 try:
                     image = client.text_to_image(
                         prompt=prompt,
-                        model="stabilityai/stable-diffusion-2-1",   # Oft stabiler
+                        model="runwayml/stable-diffusion-v1-5",   # Sehr bekanntes & stabiles Modell
                         width=512,
                         height=768,
-                        num_inference_steps=20
+                        num_inference_steps=25,
+                        guidance_scale=7.5
                     )
-                    st.image(image, caption=f"Story {i+1}", use_column_width=True)
+                    st.image(image, caption=f"Story {i+1} — {score} vs {opponent}", use_column_width=True)
                 except Exception as e:
                     st.error(f"Fehler bei Bild {i+1}")
                     st.write(str(e)[:150])
 
 with tab2:
     st.subheader("Schnelltest")
-    if st.button("Einzelnes Test-Bild"):
+    if st.button("Test-Bild generieren"):
         with st.spinner("Test läuft..."):
             try:
                 image = client.text_to_image(
-                    "field hockey player scoring goal on green field, cinematic",
-                    model="stabilityai/stable-diffusion-2-1"
+                    "field hockey player celebrating goal on green turf, cinematic",
+                    model="runwayml/stable-diffusion-v1-5",
+                    width=512,
+                    height=768
                 )
                 st.image(image)
             except Exception as e:
-                st.error("Fehler:")
-                st.write(str(e)[:250])
+                st.error(str(e)[:200])
 
-st.caption("Test mit stable-diffusion-2-1")
+st.caption("Stabile Version mit stable-diffusion-v1-5")
