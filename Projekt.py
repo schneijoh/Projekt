@@ -8,7 +8,7 @@ HF_TOKEN = "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"
 client = InferenceClient(token=HF_TOKEN)
 
 st.title("🏑 HockeyAI Studio")
-st.caption("Feldhockey Content Creator | FLUX Hyper-Speed Edition")
+st.caption("Feldhockey Content Creator | 100% Freigeschaltete Version")
 
 tab1, tab2, tab3 = st.tabs(["🎮 GameDay Blitz", "📸 Highlight Creator", "💡 Ideen & Reels"])
 
@@ -24,29 +24,28 @@ with tab1:
         moments = st.text_area("Besondere Momente", "Starke Strafecken • Comeback")
         
     if st.button("🚀 4 Stories generieren", type="primary", use_container_width=True):
-        with st.spinner("FLUX generiert High-Quality Stories..."):
-            # Der Prompt ist auf Englisch optimiert, weil FLUX das deutlich besser versteht
-            base_prompt = f"Action shot of a field hockey match, final score {score} vs {opponent}, green artificial turf background, professional sports photography, instagram story aspect ratio"
+        with st.spinner("Generiere Stories mit DreamShaper..."):
+            base_prompt = f"Action shot of a field hockey match, final score {score} vs {opponent}, green artificial turf, professional sports photography, instagram story format, portrait orientation"
             
             styles = [
                 "dynamic match action, intense atmosphere", 
                 "players celebrating a goal, emotional victory moment", 
-                "epic golden hour stadium lighting, cinematic wide shot", 
-                "dramatic focus on the field hockey ball and stick, neon colors"
+                "epic lighting, stadium atmosphere", 
+                "dramatic focus on the field hockey ball and stick"
             ]
             
             for i in range(4):
-                prompt = f"{base_prompt}, {styles[i]}, 8k resolution, photorealistic"
+                prompt = f"{base_prompt}, {styles[i]}, highly detailed, sharp focus, 8k"
                 
                 try:
-                    # FLUX.1-schnell ist das modernste Modell auf HF und hat eigene, freie Serverkapazitäten
+                    # DreamShaper 8 ist komplett offen und blockiert keine Token
                     image = client.text_to_image(
                         prompt=prompt,
-                        model="black-forest-labs/FLUX.1-schnell"
+                        model="Lykon/dreamshaper-8"
                     )
                     st.image(image, caption=f"Story {i+1} — {styles[i].split(',')[0]}", use_container_width=True)
                 except Exception as e:
-                    st.error(f"Story {i+1} fehlgeschlagen. HF-Meldung: {str(e)[:100]}...")
+                    st.error(f"Story {i+1} fehlgeschlagen. HF-Meldung: {str(e)[:120]}...")
 
 with tab2:
     st.subheader("Highlight Creator")
@@ -54,16 +53,16 @@ with tab2:
     
     if uploaded_file:
         st.image(uploaded_file, caption="Original Foto", width=600)
-        extra = st.text_input("Zusätzlicher Stil", "cinematic dramatic lighting, action shot, epic")
+        extra = st.text_input("Zusätzlicher Stil", "dramatic cinematic lighting, action shot, epic")
         
         if st.button("Episch machen"):
-            with st.spinner("FLUX transformiert dein Bild..."):
+            with st.spinner("Transformiere dein Bild..."):
                 prompt = f"Professional field hockey scene, {extra}, green artificial turf stadium, hyper-realistic"
                 try:
-                    image = client.text_to_image(prompt, model="black-forest-labs/FLUX.1-schnell")
+                    image = client.text_to_image(prompt, model="Lykon/dreamshaper-8")
                     st.image(image, caption="Dein generiertes Highlight")
                 except Exception as e:
-                    st.error(f"Fehler: {str(e)[:100]}...")
+                    st.error(f"Fehler: {str(e)[:120]}...")
 
 with tab3:
     st.subheader("Reel & Content Ideen")
@@ -79,4 +78,4 @@ with tab3:
             except Exception as e:
                 st.error(f"Fehler bei der Textgenerierung: {str(e)}")
 
-st.caption("HockeyAI Studio • Powered by FLUX & Llama")
+st.caption("HockeyAI Studio • Powered by DreamShaper & Llama")
