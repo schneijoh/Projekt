@@ -7,7 +7,7 @@ HF_TOKEN = "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"
 client = InferenceClient(token=HF_TOKEN)
 
 st.title("🏑 HockeyAI Studio")
-st.caption("Stabile Version")
+st.caption("Stabile Version - Chat Modus")
 
 tab1, tab2 = st.tabs(["🎮 GameDay Blitz", "💡 Ideen"])
 
@@ -31,35 +31,35 @@ Torschützen: {scorers}
 Besondere Momente: {moments}
 
 Schreibe:
-- Eine starke Caption
-- 5 Hashtags
+- Eine starke Caption (2-3 Sätze)
+- 5 passende Hashtags
 - 3 Story-Ideen"""
 
             try:
-                response = client.text_generation(
-                    prompt,
+                response = client.chat.completions.create(
                     model="mistralai/Mistral-7B-Instruct-v0.3",
-                    max_new_tokens=600,      # <-- korrigiert
+                    messages=[{"role": "user", "content": prompt}],
+                    max_tokens=700,
                     temperature=0.7
                 )
-                st.success("✅ Fertig!")
-                st.write(response)
+                st.success("✅ Generiert!")
+                st.write(response.choices[0].message.content)
             except Exception as e:
-                st.error("Fehler bei der Generierung")
+                st.error("Fehler")
                 st.write(str(e)[:200])
 
 with tab2:
-    st.subheader("Schnelltest")
-    if st.button("Test-Text generieren"):
-        with st.spinner("Test läuft..."):
+    st.subheader("Reel & Story Ideen")
+    if st.button("Ideen generieren"):
+        with st.spinner("Generiere Ideen..."):
             try:
-                response = client.text_generation(
-                    "Schreibe eine kurze Begrüßung für einen Feldhockey Instagram-Account.",
+                response = client.chat.completions.create(
                     model="mistralai/Mistral-7B-Instruct-v0.3",
-                    max_new_tokens=100
+                    messages=[{"role": "user", "content": f"Gib mir 8 kreative Reel und Story Ideen für ein Feldhockey Spiel {score} gegen {opponent}."}],
+                    max_tokens=600
                 )
-                st.write(response)
+                st.write(response.choices[0].message.content)
             except Exception as e:
                 st.error(str(e)[:150])
 
-st.caption("Stabile Version mit Mistral-7B")
+st.caption("Stabile Version mit Mistral Chat")
