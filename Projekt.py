@@ -8,9 +8,9 @@ HF_TOKEN = "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"
 client = InferenceClient(token=HF_TOKEN)
 
 st.title("🏑 HockeyAI Studio")
-st.caption("Stabile Version - Versuch 4")
+st.caption("Test mit offiziellem Modell")
 
-tab1, tab2 = st.tabs(["🎮 GameDay Blitz", "📸 Test"])
+tab1, tab2 = st.tabs(["🎮 GameDay", "Test"])
 
 with tab1:
     st.subheader("GameDay Blitz")
@@ -23,37 +23,37 @@ with tab1:
         scorers = st.text_area("Torschützen", "Lisa Müller - 2\nAnna Schmidt - 1")
 
     if st.button("🚀 Stories generieren", type="primary"):
-        with st.spinner("Versuche Bilder zu generieren..."):
-            base = f"field hockey, score {score} vs {opponent}, {scorers}, green turf, dynamic action"
+        with st.spinner("Versuche mit stabilem Modell..."):
+            base = f"Feldhockey Spiel, Ergebnis {score} gegen {opponent}, Torschützen {scorers}, grüner Rasen, Action"
 
-            for i in range(3):
-                prompt = f"{base}, professional sports photo, cinematic, high quality, vibrant"
+            for i in range(2):   # Nur 2 Bilder zum Testen
+                prompt = f"{base}, professionelle Sportfotografie, cinematic, hochqualitativ, dynamisch"
                 
                 try:
                     image = client.text_to_image(
                         prompt=prompt,
-                        model="runwayml/stable-diffusion-v1-5",   # Sehr altes aber stabiles Modell
-                        width=512,
-                        height=768,
-                        num_inference_steps=25
+                        model="black-forest-labs/FLUX.1-schnell",   # Versuch mit FLUX
+                        width=576,
+                        height=1024
                     )
                     st.image(image, caption=f"Story {i+1}", use_column_width=True)
+                    st.success("Bild erfolgreich generiert!")
                 except Exception as e:
-                    st.error(f"Fehler bei Bild {i+1}: {str(e)[:100]}...")
+                    st.error(f"Fehler bei Bild {i+1}")
+                    st.write(str(e)[:150])
 
 with tab2:
     st.subheader("Schnelltest")
-    if st.button("Einzelnes Test-Bild"):
-        with st.spinner("Generiere..."):
+    if st.button("Ein Test-Bild generieren"):
+        with st.spinner("Test läuft..."):
             try:
                 image = client.text_to_image(
-                    "field hockey player scoring a goal on green field, cinematic",
-                    model="runwayml/stable-diffusion-v1-5",
-                    width=512,
-                    height=768
+                    "field hockey goal celebration, green turf, cinematic lighting",
+                    model="black-forest-labs/FLUX.1-schnell"
                 )
                 st.image(image)
             except Exception as e:
-                st.error(str(e)[:200])
+                st.error("Fehler:")
+                st.write(str(e)[:300])
 
-st.caption("Stabile Version mit stable-diffusion-v1-5")
+st.caption("Letzter Versuch mit FLUX.1-schnell")
