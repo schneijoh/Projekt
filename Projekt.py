@@ -7,7 +7,7 @@ HF_TOKEN = "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"
 client = InferenceClient(token=HF_TOKEN)
 
 st.title("🏑 HockeyAI Studio")
-st.caption("Sehr einfache stabile Version")
+st.caption("Stabile Version")
 
 tab1, tab2 = st.tabs(["🎮 GameDay Blitz", "💡 Ideen"])
 
@@ -23,41 +23,43 @@ with tab1:
         moments = st.text_area("Besondere Momente", "Starke Strafecken • Comeback")
 
     if st.button("🚀 Zusammenfassung generieren", type="primary"):
-        with st.spinner("Generiere Text..."):
-            prompt = f"""Spielzusammenfassung für Instagram:
+        with st.spinner("Generiere..."):
+            prompt = f"""Erstelle eine gute Instagram-Zusammenfassung für dieses Feldhockey-Spiel:
 
 Ergebnis: {score} gegen {opponent}
 Torschützen: {scorers}
-Momente: {moments}
+Besondere Momente: {moments}
 
-Schreibe eine gute Caption und Hashtags."""
+Schreibe:
+- Eine starke Caption
+- 5 Hashtags
+- 3 Story-Ideen"""
 
             try:
                 response = client.text_generation(
-                    prompt=prompt,
+                    prompt,
                     model="mistralai/Mistral-7B-Instruct-v0.3",
-                    max_tokens=500,
-                    temperature=0.7,
-                    stop=["</s>"]
+                    max_new_tokens=600,      # <-- korrigiert
+                    temperature=0.7
                 )
-                st.success("✅ Generiert!")
+                st.success("✅ Fertig!")
                 st.write(response)
             except Exception as e:
-                st.error("Fehler")
+                st.error("Fehler bei der Generierung")
                 st.write(str(e)[:200])
 
 with tab2:
-    st.subheader("Einfacher Test")
+    st.subheader("Schnelltest")
     if st.button("Test-Text generieren"):
-        with st.spinner("Test..."):
+        with st.spinner("Test läuft..."):
             try:
                 response = client.text_generation(
-                    "Schreibe eine kurze Begrüßung für einen Feldhockey Instagram Account.",
+                    "Schreibe eine kurze Begrüßung für einen Feldhockey Instagram-Account.",
                     model="mistralai/Mistral-7B-Instruct-v0.3",
-                    max_tokens=100
+                    max_new_tokens=100
                 )
                 st.write(response)
             except Exception as e:
                 st.error(str(e)[:150])
 
-st.caption("Einfache stabile Version")
+st.caption("Stabile Version mit Mistral-7B")
