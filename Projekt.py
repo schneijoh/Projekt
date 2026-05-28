@@ -7,7 +7,7 @@ HF_TOKEN = "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"
 client = InferenceClient(token=HF_TOKEN)
 
 st.title("🏑 HockeyAI Studio")
-st.caption("Kostenlose Version • Text + Ideen")
+st.caption("Kostenlose stabile Version")
 
 tab1, tab2, tab3, tab4 = st.tabs(["🎮 GameDay Blitz", "💡 Reel & Story Ideen", "📝 Captions", "❓ Frage der Woche"])
 
@@ -24,47 +24,59 @@ with tab1:
 
     if st.button("🚀 GameDay Zusammenfassung generieren", type="primary"):
         with st.spinner("Llama generiert..."):
-            prompt = f"""Erstelle eine gute Spieltags-Zusammenfassung für Instagram für ein Feldhockey-Spiel.
-Ergebnis: {score} gegen {opponent}
+            prompt = f"""Du bist ein guter Social Media Manager für Feldhockey.
+Erstelle eine ansprechende Spieltags-Zusammenfassung.
+
+Spiel: {score} gegen {opponent}
 Torschützen: {scorers}
 Besondere Momente: {moments}
 
-Schreibe:
-1. Eine kurze, starke Caption
-2. 5 Hashtags
+Gib aus:
+1. Eine starke Instagram Caption (max 2-3 Sätze)
+2. 5 passende Hashtags
 3. 3 Story-Ideen"""
-            
-            response = client.text_generation(prompt, model="meta-llama/Llama-3.1-8B-Instruct", max_tokens=800)
-            st.write(response)
+
+            response = client.chat.completions.create(
+                model="meta-llama/Llama-3.1-8B-Instruct",
+                messages=[{"role": "user", "content": prompt}],
+                max_tokens=800,
+                temperature=0.7
+            )
+            st.write(response.choices[0].message.content)
 
 with tab2:
     st.subheader("Reel & Story Ideen")
     if st.button("Reel-Ideen generieren"):
-        with st.spinner("Generiere Ideen..."):
-            response = client.text_generation(
-                f"Gib mir 8 kreative Instagram Reel und Story Ideen für ein Feldhockey Spiel {score} gegen {opponent}. Kurz und viral.",
-                model="meta-llama/Llama-3.1-8B-Instruct"
+        with st.spinner("Generiere..."):
+            response = client.chat.completions.create(
+                model="meta-llama/Llama-3.1-8B-Instruct",
+                messages=[{"role": "user", "content": f"Gib mir 8 kreative Reel und Story Ideen für ein Feldhockey Spiel {score} gegen {opponent}"}],
+                max_tokens=600
             )
-            st.write(response)
+            st.write(response.choices[0].message.content)
 
 with tab3:
     st.subheader("Caption Generator")
-    theme = st.text_input("Thema / Stimmung", "Sieg, Kampfgeist, Strafecken")
+    theme = st.text_input("Thema / Stimmung", "Sieg, Kampfgeist")
     if st.button("Captions generieren"):
         with st.spinner("Generiere Captions..."):
-            response = client.text_generation(
-                f"Schreibe 6 gute Instagram Captions für Feldhockey. Thema: {theme}. Ergebnis: {score} vs {opponent}",
-                model="meta-llama/Llama-3.1-8B-Instruct"
+            response = client.chat.completions.create(
+                model="meta-llama/Llama-3.1-8B-Instruct",
+                messages=[{"role": "user", "content": f"Schreibe 6 gute Instagram Captions für Feldhockey. Thema: {theme}. Ergebnis: {score} vs {opponent}"}],
+                max_tokens=700
             )
-            st.write(response)
+            st.write(response.choices[0].message.content)
 
 with tab4:
     st.subheader("Frage der Woche")
     if st.button("Frage der Woche generieren"):
-        response = client.text_generation(
-            "Erstelle eine gute 'Frage der Woche' für einen Feldhockey Instagram Account nach einem Spiel.",
-            model="meta-llama/Llama-3.1-8B-Instruct"
-        )
-        st.success(response)
+        with st.spinner("Generiere..."):
+            response = client.chat.completions.create(
+                model="meta-llama/Llama-3.1-8B-Instruct",
+                messages=[{"role": "user", "content": "Erstelle eine gute 'Frage der Woche' für einen Feldhockey Instagram Account"}],
+                max_tokens=300
+            )
+            st.success(response.choices[0].message.content)
 
-st.caption("Kostenlose Version • Llama 3.1 • Keine Bildkosten")
+st.caption("Kostenlose stabile Version mit Llama 3.1")
+
