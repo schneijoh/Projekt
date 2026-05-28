@@ -3,7 +3,7 @@ from huggingface_hub import InferenceClient
 
 st.set_page_config(page_title="HockeyAI Studio", page_icon="🏑", layout="wide")
 
-HF_TOKEN = "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"
+HF_TOKEN = "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"
 
 client = InferenceClient(token=HF_TOKEN)
 
