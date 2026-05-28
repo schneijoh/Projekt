@@ -8,9 +8,9 @@ HF_TOKEN = "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"
 client = InferenceClient(token=HF_TOKEN)
 
 st.title("🏑 HockeyAI Studio")
-st.caption("Stabile Version - Working Model")
+st.caption("Stabile Version für Streamlit Cloud")
 
-tab1, tab2 = st.tabs(["🎮 GameDay Blitz", "Test"])
+tab1, tab2 = st.tabs(["🎮 GameDay Blitz", "📸 Test"])
 
 with tab1:
     st.subheader("GameDay Blitz")
@@ -22,40 +22,41 @@ with tab1:
     with col2:
         scorers = st.text_area("Torschützen", "Lisa Müller - 2\nAnna Schmidt - 1")
 
-    if st.button("🚀 2 Stories generieren", type="primary", use_container_width=True):
-        with st.spinner("Generiere mit stabilem Modell..."):
-            base = f"field hockey, score {score} vs {opponent}, {scorers}, green turf, dynamic action, instagram story"
-
+    if st.button("🚀 Stories generieren", type="primary"):
+        with st.spinner("Versuche Bilder zu generieren..."):
+            base = f"field hockey match, score {score} vs {opponent}, {scorers}, green turf, dynamic action, instagram story"
+            
             for i in range(2):
-                prompt = f"{base}, cinematic lighting, professional sports photography, high quality"
+                prompt = f"{base}, cinematic lighting, professional sports photo, high quality"
                 
                 try:
                     image = client.text_to_image(
                         prompt=prompt,
-                        model="runwayml/stable-diffusion-v1-5",   # Sehr bekanntes & stabiles Modell
-                        width=512,
-                        height=768,
-                        num_inference_steps=25,
-                        guidance_scale=7.5
+                        model="Lykon/dreamshaper-8",
+                        width=576,
+                        height=1024,
+                        num_inference_steps=20
                     )
-                    st.image(image, caption=f"Story {i+1} — {score} vs {opponent}", use_column_width=True)
+                    st.image(image, caption=f"Story {i+1}", use_column_width=True)
                 except Exception as e:
                     st.error(f"Fehler bei Bild {i+1}")
-                    st.write(str(e)[:150])
+                    st.write(str(e)[:100])
 
 with tab2:
     st.subheader("Schnelltest")
     if st.button("Test-Bild generieren"):
-        with st.spinner("Test läuft..."):
+        with st.spinner("Generiere Test-Bild..."):
             try:
                 image = client.text_to_image(
-                    "field hockey player celebrating goal on green turf, cinematic",
-                    model="runwayml/stable-diffusion-v1-5",
-                    width=512,
-                    height=768
+                    "field hockey player celebrating goal on green turf, cinematic lighting, high quality",
+                    model="Lykon/dreamshaper-8",
+                    width=576,
+                    height=1024
                 )
                 st.image(image)
+                st.success("Bild erfolgreich!")
             except Exception as e:
-                st.error(str(e)[:200])
+                st.error("Fehler bei der Generierung")
+                st.write(str(e)[:200])
 
-st.caption("Stabile Version mit stable-diffusion-v1-5")
+st.caption("HockeyAI Studio • Streamlit Cloud Version")
