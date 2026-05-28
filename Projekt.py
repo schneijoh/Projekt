@@ -1,19 +1,12 @@
 import streamlit as st
-import os
 
-st.title("🏑 HockeyAI Studio - Debug")
+st.title("🏑 HockeyAI Studio - Final Test")
 
-st.write("**Aktueller Ordnerinhalt:**")
 try:
-    files = os.listdir(".")
-    st.write(files)
-except:
-    st.write("Konnte nicht lesen")
-
-st.write("**Secrets vorhanden?**")
-if "HF_TOKEN" in st.secrets:
-    st.success("✅ HF_TOKEN gefunden!")
-    st.write("Beginnt mit:", st.secrets["HF_TOKEN"][:15] + "...")
-else:
-    st.error("❌ HF_TOKEN nicht gefunden")
-    st.write("Verfügbare Secrets Keys:", list(st.secrets.keys()))
+    token = st.secrets["HF_TOKEN"]
+    st.success("✅ Token erfolgreich geladen!")
+    st.write("Token beginnt mit:", token[:20] + "...")
+except Exception as e:
+    st.error("❌ Fehler beim Laden des Tokens")
+    st.write("Fehlermeldung:", str(e))
+    st.write("Verfügbare Secrets:", list(st.secrets.keys()))
