@@ -3,29 +3,12 @@ from huggingface_hub import InferenceClient
 
 st.set_page_config(page_title="HockeyAI Studio", page_icon="🏑", layout="wide")
 
-# Dein Token
+# Dein Token bleibt fest drin
 HF_TOKEN = "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"
 client = InferenceClient(token=HF_TOKEN)
 
-# Liste von Modellen, die wir nacheinander durchprobieren, falls keins antwortet
-IMAGE_MODELS = [
-    "stabilityai/stable-diffusion-2-1",
-    "runwayml/stable-diffusion-v1-5",
-    "CompVis/stable-diffusion-v1-4"
-]
-
-def generate_hockey_image(prompt):
-    """Versucht ein Bild zu generieren. Wenn ein Modell offline ist, wird das nächste probiert."""
-    for model in IMAGE_MODELS:
-        try:
-            image = client.text_to_image(prompt=prompt, model=model)
-            return image, model
-        except Exception:
-            continue  # Probiere das nächste Modell
-    return None, None
-
 st.title("🏑 HockeyAI Studio")
-st.caption("Feldhockey Content Creator | Fail-Safe Bildgenerierung")
+st.caption("Feldhockey Content Creator | FLUX Hyper-Speed Edition")
 
 tab1, tab2, tab3 = st.tabs(["🎮 GameDay Blitz", "📸 Highlight Creator", "💡 Ideen & Reels"])
 
@@ -41,19 +24,29 @@ with tab1:
         moments = st.text_area("Besondere Momente", "Starke Strafecken • Comeback")
         
     if st.button("🚀 4 Stories generieren", type="primary", use_container_width=True):
-        with st.spinner("Suche freies KI-Modell und generiere Bilder..."):
-            base_prompt = f"field hockey action, match score {score} vs {opponent}, green artificial turf, dynamic sports photography, instagram story format"
+        with st.spinner("FLUX generiert High-Quality Stories..."):
+            # Der Prompt ist auf Englisch optimiert, weil FLUX das deutlich besser versteht
+            base_prompt = f"Action shot of a field hockey match, final score {score} vs {opponent}, green artificial turf background, professional sports photography, instagram story aspect ratio"
+            
+            styles = [
+                "dynamic match action, intense atmosphere", 
+                "players celebrating a goal, emotional victory moment", 
+                "epic golden hour stadium lighting, cinematic wide shot", 
+                "dramatic focus on the field hockey ball and stick, neon colors"
+            ]
             
             for i in range(4):
-                styles = ["golden hour lighting", "epic celebration", "intense action", "victory moment"]
-                prompt = f"{base_prompt}, {styles[i]}, cinematic, highly detailed"
+                prompt = f"{base_prompt}, {styles[i]}, 8k resolution, photorealistic"
                 
-                image, used_model = generate_hockey_image(prompt)
-                
-                if image:
-                    st.image(image, caption=f"Story {i+1} ({used_model})", use_container_width=True)
-                else:
-                    st.error(f"Story {i+1} konnte nicht generiert werden. Alle Hugging Face Server sind gerade überlastet.")
+                try:
+                    # FLUX.1-schnell ist das modernste Modell auf HF und hat eigene, freie Serverkapazitäten
+                    image = client.text_to_image(
+                        prompt=prompt,
+                        model="black-forest-labs/FLUX.1-schnell"
+                    )
+                    st.image(image, caption=f"Story {i+1} — {styles[i].split(',')[0]}", use_container_width=True)
+                except Exception as e:
+                    st.error(f"Story {i+1} fehlgeschlagen. HF-Meldung: {str(e)[:100]}...")
 
 with tab2:
     st.subheader("Highlight Creator")
@@ -61,21 +54,21 @@ with tab2:
     
     if uploaded_file:
         st.image(uploaded_file, caption="Original Foto", width=600)
-        extra = st.text_input("Zusätzlicher Stil", "dramatic cinematic lighting, professional sports photography")
+        extra = st.text_input("Zusätzlicher Stil", "cinematic dramatic lighting, action shot, epic")
         
         if st.button("Episch machen"):
-            with st.spinner("Generiere..."):
-                prompt = f"field hockey action player, {extra}, green turf, high quality"
-                image, used_model = generate_hockey_image(prompt)
-                if image:
-                    st.image(image, caption=f"Generiertes Highlight (Modell: {used_model})")
-                else:
-                    st.error("Bild-Server überlastet. Bitte gleich nochmal versuchen.")
+            with st.spinner("FLUX transformiert dein Bild..."):
+                prompt = f"Professional field hockey scene, {extra}, green artificial turf stadium, hyper-realistic"
+                try:
+                    image = client.text_to_image(prompt, model="black-forest-labs/FLUX.1-schnell")
+                    st.image(image, caption="Dein generiertes Highlight")
+                except Exception as e:
+                    st.error(f"Fehler: {str(e)[:100]}...")
 
 with tab3:
     st.subheader("Reel & Content Ideen")
     if st.button("Ideen generieren"):
-        with st.spinner("Llama generiert Ideen..."):
+        with st.spinner("Llama denkt nach..."):
             try:
                 response = client.text_generation(
                     f"Erstelle 8 kreative und kurze Instagram Reel und Story Ideen für ein Feldhockey Spiel. Ergebnis: {score} gegen {opponent}.",
@@ -86,4 +79,4 @@ with tab3:
             except Exception as e:
                 st.error(f"Fehler bei der Textgenerierung: {str(e)}")
 
-st.caption("HockeyAI Studio • Smart Fallback Aktiviert")
+st.caption("HockeyAI Studio • Powered by FLUX & Llama")
