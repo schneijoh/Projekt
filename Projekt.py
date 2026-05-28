@@ -1,12 +1,24 @@
 import streamlit as st
+from huggingface_hub import InferenceClient
 
-st.title("🏑 HockeyAI Studio - Final Test")
+st.set_page_config(page_title="HockeyAI Studio", page_icon="🏑", layout="wide")
 
-try:
-    token = st.secrets["HF_TOKEN"]
-    st.success("✅ Token erfolgreich geladen!")
-    st.write("Token beginnt mit:", token[:20] + "...")
-except Exception as e:
-    st.error("❌ Fehler beim Laden des Tokens")
-    st.write("Fehlermeldung:", str(e))
-    st.write("Verfügbare Secrets:", list(st.secrets.keys()))
+st.title("🏑 HockeyAI Studio")
+
+HF_TOKEN = "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"   
+
+if HF_TOKEN and HF_TOKEN.startswith("hf_"):
+    client = InferenceClient(token=HF_TOKEN)
+    st.success("✅ Token geladen - App ist bereit!")
+    
+    if st.button("Test-Bild mit FLUX generieren"):
+        with st.spinner("FLUX.1-schnell generiert..."):
+            image = client.text_to_image(
+                "field hockey player celebrating a goal on green turf, cinematic lighting, dynamic action",
+                model="black-forest-labs/FLUX.1-schnell"
+            )
+            st.image(image, caption="Test Bild - FLUX.1-schnell")
+else:
+    st.error("Token fehlt oder ist ungültig.")
+
+st.caption("HockeyAI Studio • Test Version")
