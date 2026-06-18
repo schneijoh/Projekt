@@ -103,4 +103,26 @@ with tab3:
     # HTML/Markdown-Tabelle für eine schöne Druckansicht
     matchplan_data = {
         "Kategorie": ["Gegner", "Formation", "Torwart", "Abwehr", "Mittelfeld", "Sturm", "Wechselbank", "Strafecke", "Defensiv-Taktik"],
-        "Details":
+        "Details": [
+            gegner, 
+            formation, 
+            tw, 
+            f"{def1}, {def2}, {def3}", 
+            f"{mid1}, {mid2}, {mid3}", 
+            f"{sturm1}, {sturm2}, {sturm3}", 
+            ", ".join(bench) if bench else "Keine", 
+            f"{ecken_schuetze} ({ecken_variante})",
+            def_style
+        ]
+    }
+    
+    df = pd.DataFrame(matchplan_data)
+    st.table(df)
+    
+    st.markdown("### 💡 Kabinen-Aushang")
+    st.info(f"**Ansprache an das Team:**\n\n{ansprache}")
+    
+    # Button zum "Drucken" über den Browser
+    st.write("👉 Nutze `STRG + P` (Windows) oder `CMD + P` (Mac), um diese Seite direkt als PDF für die Kabine auszudrucken!")
+
+st.caption("HockeyTactical Studio • 100% Offline & Token-Free")
