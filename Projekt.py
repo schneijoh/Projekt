@@ -1,22 +1,16 @@
 import streamlit as st
+import requests
+from io import BytesIO
+from PIL import Image
 from huggingface_hub import InferenceClient
 
 st.set_page_config(page_title="HockeyAI Studio", page_icon="🏑", layout="wide")
 
-# --- SIDEBAR: TOKEN FLEXIBEL EINGEBEN ---
-st.sidebar.title("🔑 API-Konfiguration")
-user_token = st.sidebar.text_input("Hugging Face Token (optional)", type="password", help="Ohne Token wird ein freies Basis-Modell genutzt. Mit Token kriegst du FLUX.")
+# Client NUR noch für den Text in Tab 3 (Text klappt oft noch ohne Token)
+client = InferenceClient()
 
-if user_token:
-    client = InferenceClient(token=user_token)
-    st.sidebar.success("🔒 Eigener Token aktiv! (FLUX freigeschaltet)")
-else:
-    client = InferenceClient() 
-    st.sidebar.warning("⚠️ Kein Token eingetragen. Nutze die freie Basis-API.")
-
-# --- APP HEADER ---
 st.title("🏑 HockeyAI Studio")
-st.caption("Feldhockey Content Creator • Premium Edition")
+st.caption("Feldhockey Content Creator • Premium Edition (Token-Free Bilder)")
 
 if "gameday_score" not in st.session_state:
     st.session_state["gameday_score"] = "4:2"
@@ -24,6 +18,16 @@ if "gameday_opponent" not in st.session_state:
     st.session_state["gameday_opponent"] = "Mannheimer HC"
 
 tab1, tab2, tab3 = st.tabs(["🎮 GameDay Blitz", "📸 Highlight Creator", "💡 Ideen & Reels"])
+
+# --- HILFSFUNKTION FÜR TOKEN-FREIE BILDER ---
+def generate_free_image(prompt):
+    # Nutzt die kostenlose, offene Pollinations-API (kein Token nötig!)
+    url = f"https://image.pollinations.ai/prompt/{requests.utils.quote(prompt)}?width=1024&height=1024&enhance=true"
+    response = requests.get(url)
+    if response.status_code == 200:
+        return Image.open(BytesIO(response.content))
+    else:
+        raise Exception(f"Fehler beim Bild-Server (Status: {response.status_code})")
 
 # --- TAB 1: GAMEDAY BLITZ ---
 with tab1:
@@ -38,8 +42,8 @@ with tab1:
         moments = st.text_area("Besondere Momente", "Starke Strafecken • Comeback", key="gameday_moments")
         
     if st.button("🚀 4 Stories generieren", type="primary", use_container_width=True):
-        with st.spinner("Generiere Hockey-Bilder..."):
-            base_prompt = f"Action shot of a field hockey match, score {score} vs {opponent}, green artificial turf, professional sports photography, instagram story format"
+        with st.spinner("Generiere Hockey-Bilder über freien Server..."):
+            base_prompt = f"Action shot of a field hockey match, final score {score} vs {opponent}, green artificial turf, professional sports photography, instagram story format"
             
             styles = [
                 "dynamic match action, intense atmosphere", 
@@ -48,16 +52,14 @@ with tab1:
                 "dramatic focus on the field hockey ball and stick"
             ]
             
-            # CompVis/stable-diffusion-v1-4 läuft direkt über HF und blockiert ohne Token seltener
-            model_to_use = "black-forest-labs/FLUX.1-schnell" if user_token else "CompVis/stable-diffusion-v1-4"
-            
             for i in range(4):
                 prompt = f"{base_prompt}, {styles[i]}, photorealistic, 8k"
                 try:
-                    image = client.text_to_image(prompt=prompt, model=model_to_use)
+                    # Aufruf der neuen, token-freien Funktion
+                    image = generate_free_image(prompt)
                     st.image(image, caption=f"Story {i+1} — {styles[i].split(',')[0]}", use_container_width=True)
                 except Exception as e:
-                    st.error(f"Story {i+1} Fehler: {str(e)[:120]}")
+                    st.error(f"Story {i+1} Fehler: {str(e)}")
 
 # --- TAB 2: HIGHLIGHT CREATOR ---
 with tab2:
@@ -71,12 +73,11 @@ with tab2:
         if st.button("Episch machen"):
             with st.spinner("Künstliche Intelligenz arbeitet..."):
                 prompt = f"Professional field hockey scene, {extra}, green artificial turf stadium, hyper-realistic"
-                model_to_use = "black-forest-labs/FLUX.1-schnell" if user_token else "CompVis/stable-diffusion-v1-4"
                 try:
-                    image = client.text_to_image(prompt, model=model_to_use)
+                    image = generate_free_image(prompt)
                     st.image(image, caption="Dein generiertes Highlight")
                 except Exception as e:
-                    st.error(f"Fehler: {str(e)[:120]}")
+                    st.error(f"Fehler: {str(e)}")
 
 # --- TAB 3: IDEEN & REELS ---
 with tab3:
@@ -88,7 +89,6 @@ with tab3:
             
             text_model = "meta-llama/Llama-3.1-8B-Instruct"
             try:
-                # Hier wurde 'max_tokens' zu 'max_new_tokens' korrigiert!
                 response = client.text_generation(
                     f"Erstelle 8 kreative und kurze Instagram Reel und Story Ideen für ein Feldhockey Spiel. Ergebnis: {current_score} gegen {current_opponent}.",
                     model=text_model,
@@ -96,6 +96,6 @@ with tab3:
                 )
                 st.write(response)
             except Exception as e:
-                st.error(f"Fehler: {str(e)[:120]}")
+                st.error(f"Fehler bei Textgenerierung: {str(e)}. (Hugging Face blockiert nun auch Text ohne Anmeldung).")
 
-st.caption("HockeyAI Studio • Fixed Parameter Edition")
+st.caption("HockeyAI Studio • 100% Token-Free Bild-Engine")
