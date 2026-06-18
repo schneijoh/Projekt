@@ -20,7 +20,6 @@ def umlaute_ersetzen(text):
 # --- STREAMLIT CONFIG & DESIGN ---
 st.set_page_config(page_title="LBV Phoenix Command Center", page_icon="🦅", layout="wide")
 
-# Zentrales, sauberes Phönix-Design für die App-Oberfläche
 st.markdown("""
     <style>
     .main { background-color: #f4f6f9; }
@@ -138,11 +137,9 @@ with tab2:
     ])
     
     if st.button("🚀 Kader-Grafik erstellen"):
-        # 4K UHD QUALITÄT (2160 x 3840) für extreme Schärfe
         img = Image.new("RGB", (2160, 3840))
         draw = ImageDraw.Draw(img)
         
-        # Farbwelten zuweisen
         if "Blauer Kunstrasen" in design_typ:
             bg, accent, text = "#004B87", "#cc0000", "#ffffff"
             draw.rectangle([0, 0, 2160, 3840], fill=bg)
@@ -153,19 +150,17 @@ with tab2:
             bg, accent, text = "#001530", "#cc0000", "#ffffff"
             draw.rectangle([0, 0, 2160, 3840], fill=bg)
             draw.rectangle([0, 0, 2160, 520], fill=accent)
-        else: # Clean White
+        else:
             bg, accent, text = "#ffffff", "#002147", "#002147"
             draw.rectangle([0, 0, 2160, 3840], fill=bg)
             draw.rectangle([80, 80, 2080, 3760], outline=accent, width=16)
 
-        # Größere Boxen für bessere Lesbarkeit
         box_fill = "#000e21" if "Clean White" not in design_typ else "#f4f6f9"
         box_outline = "#cc0000" if "Clean White" not in design_typ else "#002147"
         
         for y_box in [1000, 1440, 1880, 2320, 2920]:
             draw.rectangle([150, y_box, 2010, y_box+280], fill=box_fill, outline=box_outline, width=4)
 
-        # Texte vorbereiten und Umlaute ausschreiben
         header_top = umlaute_ersetzen("LBV PHOENIX LUEBECK")
         header_sub = umlaute_ersetzen(f"STARTING XI vs {gegner_media}")
         system_str = umlaute_ersetzen(f"System: {formation}")
@@ -178,7 +173,6 @@ with tab2:
         bank_raw = ", ".join(moegliche_bank) if moegliche_bank else "Keine"
         bank_str = umlaute_ersetzen(f"🔄 BANK:  {bank_raw}")
 
-        # Texte rendern (Schriftgrößen angepasst für perfekte Lesbarkeit in 4K)
         draw.text((1080, 260), header_top, fill="#ffffff" if "Clean White" not in design_typ else "#002147", anchor="mm", font_size=116)
         draw.text((1080, 640), header_sub, fill=accent if "Classic" not in design_typ else "#ffcc00", anchor="mm", font_size=92)
         draw.text((1080, 780), system_str, fill=text, anchor="mm", font_size=64)
@@ -196,58 +190,76 @@ with tab2:
         img.save(buf, format="PNG")
         st.download_button(label="📥 Kader-Story herunterladen", data=buf.getvalue(), file_name="phoenix_kader.png", mime="image/png", type="primary")
 
-# --- TAB 3: WEITERE GRAFIKEN (NEUES DESIGN & DETAILS) ---
+# --- TAB 3: WEITERE GRAFIKEN (ERWEITERT & DYNAMISCH) ---
 with tab3:
     st.subheader("🎨 Weitere nützliche Grafiken erstellen")
-    st.write("Generiere hier Plakate oder Endergebnisse in exzellenter 4K-Qualität.")
+    st.write("Wähle das passende Event-Format. Alle Grafiken werden hochauflösend (4K) ausgegeben.")
     
-    g_type = st.selectbox("Welche Grafik brauchst du?", ["Match-Ankündigung (Plakat)", "Endergebnis-Post"])
+    # Auswahlliste stark vergrößert
+    g_type = st.selectbox("Welche Grafik brauchst du?", [
+        "Match-Ankündigung (Plakat)", 
+        "Halbzeitstand-Post", 
+        "Endergebnis-Post", 
+        "Absage / Spielverlegung", 
+        "Freitext-Info-Post (z.B. Event/Party)"
+    ])
     
-    # Erweiterte Spieldetails für maximale Flexibilität
+    # Basisdaten-Eingabe (Für fast alle Typen relevant)
     c_g1, c_g2 = st.columns(2)
     with c_g1:
-        gegner_g = st.text_input("Gegner:", "UHC Hamburg", key="gegner_tab3_new")
-        ort_g = st.text_input("Spielort / Platz:", "Falkenstrasse (Blau)", key="ort_tab3")
+        gegner_g = st.text_input("Gegner:", "UHC Hamburg", key="gegner_tab3_new") if g_type != "Freitext-Info-Post (z.B. Event/Party)" else ""
+        ort_g = st.text_input("Spielort / Location:", "Falkenstrasse (Blau)", key="ort_tab3")
     with c_g2:
         datum_g = st.text_input("Datum:", datetime.now().strftime("%d.%m.%Y"), key="datum_tab3")
-        zeit_g = st.text_input("Uhrzeit / Anpfiff:", "14:00 Uhr", key="zeit_tab3")
+        zeit_g = st.text_input("Uhrzeit:", "14:00 Uhr", key="zeit_tab3")
         
-    info_g = st.text_input("Zusatz-Info (z.B. 'Heimspiel', 'Eintritt frei' oder 'Topspiel'):", "Heimspiel", key="info_tab3")
+    # Dynamische Zusatzfelder je nach Grafiktyp
+    tore_p, tore_g = 0, 0
+    freitext_titel = ""
+    freitext_inhalt = ""
+    info_g = ""
     
-    if g_type == "Endergebnis-Post":
+    if g_type in ["Endergebnis-Post", "Halbzeitstand-Post"]:
         c_e1, c_e2 = st.columns(2)
-        with c_e1: tore_p = st.number_input("Tore Phönix:", value=st.session_state["tore_phönix"])
-        with c_e2: tore_g = st.number_input("Tore Gegner:", value=st.session_state["tore_gegner"])
-        
+        with c_e1: tore_p = st.number_input("Tore Phönix:", value=st.session_state["tore_phönix"], min_value=0, step=1)
+        with c_e2: tore_g = st.number_input("Tore Gegner:", value=st.session_state["tore_gegner"], min_value=0, step=1)
+    
+    if g_type == "Match-Ankündigung (Plakat)":
+        info_g = st.text_input("Zusatz-Info (z.B. 'Topspiel', 'Eintritt frei'):", "Heimspiel", key="info_tab3")
+    elif g_type == "Absage / Spielverlegung":
+        info_g = st.text_input("Grund / Info (z.B. 'Nachholtermin folgt'):", "Spiel fällt witterungsbedingt aus!", key="absage_tab3")
+    elif g_type == "Freitext-Info-Post (z.B. Event/Party)":
+        freitext_titel = st.text_input("Überschrift des Posts:", "MANNSCHAFTSABEND")
+        freitext_inhalt = st.text_area("Inhalt / Beschreibung:", "Kommt alle vorbei! Für kalte Getränke und Grillgut ist gesorgt. Start nach dem Training.")
+
     if st.button("🚀 Grafik jetzt generieren"):
-        # 4K UHD QUALITÄT (2160 x 3840)
+        # 4K UHD QUALITÄT (2160 x 3840) für gestochen scharfe Social-Media-Posts
         img_g = Image.new("RGB", (2160, 3840), color="#002147")
         draw_g = ImageDraw.Draw(img_g)
         
-        # Stabiler Kontrast-Rahmen
+        # Stabiler Rahmen & Roter Header-Balken
         draw_g.rectangle([80, 80, 2080, 3760], outline="#ffffff", width=12)
         draw_g.rectangle([80, 80, 2080, 480], fill="#cc0000")
         
-        # Texte säubern & Umlaute ausschreiben
+        # Standard-Texte säubern & Umlaute ausschreiben
         club_title = umlaute_ersetzen("LBV PHOENIX LUEBECK")
         gegner_clean = umlaute_ersetzen(gegner_g)
         ort_clean = umlaute_ersetzen(ort_g)
         datum_clean = umlaute_ersetzen(datum_g)
         zeit_clean = umlaute_ersetzen(zeit_g)
-        info_clean = umlaute_ersetzen(info_g).upper()
+        info_clean = umlaute_ersetzen(info_g)
         
         draw_g.text((1080, 280), club_title, fill="#ffffff", anchor="mm", font_size=110)
         
+        # --- TYP 1: MATCH-ANKÜNDIGUNG ---
         if g_type == "Match-Ankündigung (Plakat)":
             draw_g.text((1080, 1100), "NAECHSTES SPIEL", fill="#ffcc00", anchor="mm", font_size=140)
             
-            # Match-Box (Massiv und kontrastreich)
             draw_g.rectangle([250, 1350, 1910, 2050], fill="#001124", outline="#ffffff", width=6)
             draw_g.text((1080, 1530), "LBV PHOENIX", fill="#ffffff", anchor="mm", font_size=96)
             draw_g.text((1080, 1720), "VS", fill="#cc0000", anchor="mm", font_size=70)
             draw_g.text((1080, 1890), gegner_clean, fill="#ffffff", anchor="mm", font_size=96)
             
-            # Event-Details gut lesbar blockweise platziert
             draw_g.rectangle([250, 2250, 1910, 2900], fill="#001a3a", outline="#ffcc00", width=4)
             draw_g.text((1080, 2370), f"PLATZ:  {ort_clean}", fill="#ffffff", anchor="mm", font_size=76)
             draw_g.text((1080, 2520), f"DATUM:  {datum_clean}", fill="#ffffff", anchor="mm", font_size=76)
@@ -255,12 +267,24 @@ with tab3:
             
             if info_clean:
                 draw_g.rectangle([350, 3100, 1810, 3280], fill="#cc0000")
-                draw_g.text((1080, 3190), info_clean, fill="#ffffff", anchor="mm", font_size=72)
+                draw_g.text((1080, 3190), info_clean.upper(), fill="#ffffff", anchor="mm", font_size=72)
             
-        else: # Endergebnis-Post
+        # --- TYP 2: HALBZEITSTAND ---
+        elif g_type == "Halbzeitstand-Post":
+            draw_g.text((1080, 1100), "HALBZEITSTAND", fill="#ffcc00", anchor="mm", font_size=140)
+            
+            draw_g.rectangle([250, 1350, 1910, 2250], fill="#001124", outline="#ffffff", width=8)
+            draw_g.text((1080, 1510), "LBV Phoenix", fill="#ffffff", anchor="mm", font_size=86)
+            draw_g.text((1080, 1790), f"{int(tore_p)} : {int(tore_g)}", fill="#ffffff", anchor="mm", font_size=210)
+            draw_g.text((1080, 2070), gegner_clean, fill="#ffffff", anchor="mm", font_size=86)
+            
+            draw_g.text((1080, 2500), "Gleich geht's weiter!", fill="#ffffff", anchor="mm", font_size=76)
+            draw_g.text((1080, 2650), f"{ort_clean}", fill="#aaaaaa", anchor="mm", font_size=56)
+
+        # --- TYP 3: ENDERGEBNIS ---
+        elif g_type == "Endergebnis-Post":
             draw_g.text((1080, 1100), "ENDERGEBNIS", fill="#ffcc00", anchor="mm", font_size=140)
             
-            # Übergroßer Score-Kasten für maximalen Fokus
             draw_g.rectangle([250, 1350, 1910, 2250], fill="#001124", outline="#cc0000", width=8)
             draw_g.text((1080, 1510), "LBV Phoenix", fill="#ffffff", anchor="mm", font_size=86)
             draw_g.text((1080, 1790), f"{int(tore_p)} : {int(tore_g)}", fill="#ffffff", anchor="mm", font_size=210)
@@ -268,16 +292,49 @@ with tab3:
             
             draw_g.text((1080, 2400), f"{datum_clean}  •  {ort_clean}", fill="#aaaaaa", anchor="mm", font_size=56)
             
-            # Match-Highlights
             if st.session_state["spielbericht_events"]:
                 draw_g.rectangle([250, 2550, 1910, 3250], fill="#001a3a", outline="#ffffff", width=3)
                 draw_g.text((1080, 2640), "MATCH HIGHLIGHTS", fill="#ffcc00", anchor="mm", font_size=68)
                 y_offset = 2760
                 for ev in st.session_state["spielbericht_events"][:5]:
-                    ev_clean = umlaute_ersetzen(ev)
-                    draw_g.text((1080, y_offset), ev_clean, fill="#ffffff", anchor="mm", font_size=58)
+                    draw_g.text((1080, y_offset), umlaute_ersetzen(ev), fill="#ffffff", anchor="mm", font_size=58)
                     y_offset += 100
 
+        # --- TYP 4: ABSAGE / SPIELVERLEGUNG ---
+        elif g_type == "Absage / Spielverlegung":
+            draw_g.text((1080, 1100), "SPIELABSAGE", fill="#cc0000", anchor="mm", font_size=140)
+            
+            draw_g.rectangle([250, 1350, 1910, 1850], fill="#001124", outline="#ffffff", width=6)
+            draw_g.text((1080, 1500), "LBV Phoenix", fill="#ffffff", anchor="mm", font_size=86)
+            draw_g.text((1080, 1680), f"vs  {gegner_clean}", fill="#ffffff", anchor="mm", font_size=86)
+            
+            draw_g.rectangle([250, 2050, 1910, 2650], fill="#cc0000", outline="#ffffff", width=4)
+            draw_g.text((1080, 2350), info_clean.upper(), fill="#ffffff", anchor="mm", font_size=70)
+            
+            draw_g.text((1080, 2900), f"Geplantes Spiel vom {datum_clean}", fill="#aaaaaa", anchor="mm", font_size=60)
+
+        # --- TYP 5: FREITEXT POST ---
+        elif g_type == "Freitext-Info-Post (z.B. Event/Party)":
+            titel_clean = umlaute_ersetzen(freitext_titel).upper()
+            inhalt_clean = umlaute_ersetzen(freitext_inhalt)
+            
+            draw_g.text((1080, 1000), titel_clean, fill="#ffcc00", anchor="mm", font_size=120)
+            
+            # Große Infobox in der Mitte
+            draw_g.rectangle([200, 1200, 1960, 2600], fill="#001a3a", outline="#ffffff", width=6)
+            
+            # Textumbruch-Logik für Textfelder (simpel zeilenweise)
+            lines = inhalt_clean.split("\n")
+            y_text_offset = 1400
+            for line in lines:
+                draw_g.text((1080, y_text_offset), line, fill="#ffffff", anchor="mm", font_size=64)
+                y_text_offset += 110
+                
+            # Fußzeile der Infobox für Orga-Daten
+            draw_g.text((1080, 2800), f"WANN: {datum_clean} um {zeit_clean}", fill="#ffffff", anchor="mm", font_size=70)
+            draw_g.text((1080, 2950), f"WO: {ort_clean}", fill="#ffffff", anchor="mm", font_size=70)
+
+        # Fester, edler Abschluss für das Corporate-Gefühl
         draw_g.text((1080, 3520), "🦅 NUR DER LBV!", fill="#ffffff", anchor="mm", font_size=85)
         
         st.image(img_g, width=350)
