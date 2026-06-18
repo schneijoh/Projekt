@@ -69,9 +69,8 @@ if len(kader) < 11:
 st.title("🏑 PHOENIX HOCKEY COMMAND CENTER")
 st.write("Die All-in-One Verwaltung für Aufstellung, Social Media und Spielbetrieb.")
 
-tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
+tab1, tab2, tab3, tab4, tab5 = st.tabs([
     "📋 Aufstellung (Dynamisch)", 
-    "🎯 Corner Master", 
     "📸 Kader-Grafik",
     "🎨 Weitere Grafiken",
     "📝 Live-Scout & Bericht",
@@ -128,25 +127,10 @@ with tab1:
     else:
         st.caption("Keine Auswechselspieler verfügbar.")
 
-# --- TAB 2: CORNER MASTER ---
+# --- TAB 2: SOCIAL MEDIA EXPORT (KADER GRAFIK) ---
 with tab2:
-    st.subheader("🎯 Strafecken-Zuweisung")
-    e_col1, e_col2 = st.columns(2)
-    with e_col1:
-        st.markdown("### 🟢 Eigene Ecken (Offensiv)")
-        raus = st.selectbox("Rausgeber", kader, index=1, key="raus")
-        stop = st.selectbox("Stopper", kader, index=2, key="stop")
-        schuss = st.multiselect("Schützen", kader, default=[kader[min(3, len(kader)-1)]])
-    with e_col2:
-        st.markdown("### 🔴 Gegnerische Ecken (Defensiv)")
-        w1 = st.selectbox("1. Welle (Abläufer)", kader, index=min(4, len(kader)-1), key="w1")
-        w2 = st.selectbox("2. Welle", kader, index=min(5, len(kader)-1), key="w2")
-        posten = st.selectbox("Linien-Posten", kader, index=min(2, len(kader)-1), key="posten")
-
-# --- TAB 3: SOCIAL MEDIA EXPORT (KADER GRAFIK) ---
-with tab3:
     st.subheader("📸 Startelf-Grafik für Instagram")
-    gegner_media = st.text_input("Gegner:", "UHC Hamburg", key="gegner_tab3")
+    gegner_media = st.text_input("Gegner:", "UHC Hamburg", key="gegner_tab2")
     design_typ = st.radio("Wähle dein Phönix Vereins-Design:", [
         "🔵 Falkenstraße Homefield (Blauer Kunstrasen!)", 
         "🔵⚪🔴 Phönix Matchday Classic (Dunkelblau dominant)", 
@@ -154,7 +138,7 @@ with tab3:
     ])
     
     if st.button("🚀 Kader-Grafik erstellen"):
-        # HOHE QUALITÄT: Verdoppelte Auflösung (2160 x 3840)
+        # 4K UHD QUALITÄT (2160 x 3840) für extreme Schärfe
         img = Image.new("RGB", (2160, 3840))
         draw = ImageDraw.Draw(img)
         
@@ -174,12 +158,12 @@ with tab3:
             draw.rectangle([0, 0, 2160, 3840], fill=bg)
             draw.rectangle([80, 80, 2080, 3760], outline=accent, width=16)
 
-        # Boxen-Hintergrund für bessere Lesbarkeit (skaliert)
+        # Größere Boxen für bessere Lesbarkeit
         box_fill = "#000e21" if "Clean White" not in design_typ else "#f4f6f9"
         box_outline = "#cc0000" if "Clean White" not in design_typ else "#002147"
         
         for y_box in [1000, 1440, 1880, 2320, 2920]:
-            draw.rectangle([200, y_box, 1960, y_box+260], fill=box_fill, outline=box_outline, width=4)
+            draw.rectangle([150, y_box, 2010, y_box+280], fill=box_fill, outline=box_outline, width=4)
 
         # Texte vorbereiten und Umlaute ausschreiben
         header_top = umlaute_ersetzen("LBV PHOENIX LUEBECK")
@@ -194,17 +178,16 @@ with tab3:
         bank_raw = ", ".join(moegliche_bank) if moegliche_bank else "Keine"
         bank_str = umlaute_ersetzen(f"🔄 BANK:  {bank_raw}")
 
-        # Header Text zeichnen (Schriftgrößen verdoppelt für HQ)
+        # Texte rendern (Schriftgrößen angepasst für perfekte Lesbarkeit in 4K)
         draw.text((1080, 260), header_top, fill="#ffffff" if "Clean White" not in design_typ else "#002147", anchor="mm", font_size=116)
         draw.text((1080, 640), header_sub, fill=accent if "Classic" not in design_typ else "#ffcc00", anchor="mm", font_size=92)
         draw.text((1080, 780), system_str, fill=text, anchor="mm", font_size=64)
         
-        # Aufstellungs-Text zeichnen
-        draw.text((1080, 1130), tw_str, fill=text, anchor="mm", font_size=76)
-        draw.text((1080, 1570), def_str, fill=text, anchor="mm", font_size=72)
-        draw.text((1080, 2010), mid_str, fill=text, anchor="mm", font_size=72)
-        draw.text((1080, 2450), sturm_str, fill=text, anchor="mm", font_size=72)
-        draw.text((1080, 3050), bank_str, fill=text, anchor="mm", font_size=68)
+        draw.text((1080, 1140), tw_str, fill=text, anchor="mm", font_size=78)
+        draw.text((1080, 1580), def_str, fill=text, anchor="mm", font_size=74)
+        draw.text((1080, 2020), mid_str, fill=text, anchor="mm", font_size=74)
+        draw.text((1080, 2460), sturm_str, fill=text, anchor="mm", font_size=74)
+        draw.text((1080, 3060), bank_str, fill=text, anchor="mm", font_size=70)
         
         draw.text((1080, 3640), "ADLER FLIEGEN HOCH • SEIT 1903", fill="#aaaaaa", anchor="mm", font_size=52)
         
@@ -213,23 +196,23 @@ with tab3:
         img.save(buf, format="PNG")
         st.download_button(label="📥 Kader-Story herunterladen", data=buf.getvalue(), file_name="phoenix_kader.png", mime="image/png", type="primary")
 
-# --- TAB 4: WEITERE GRAFIKEN (MATECH-DETAILS & HQ) ---
-with tab4:
+# --- TAB 3: WEITERE GRAFIKEN (NEUES DESIGN & DETAILS) ---
+with tab3:
     st.subheader("🎨 Weitere nützliche Grafiken erstellen")
-    st.write("Generiere hier Grafiken in hoher Qualität für Ankündigungen oder Endergebnisse.")
+    st.write("Generiere hier Plakate oder Endergebnisse in exzellenter 4K-Qualität.")
     
     g_type = st.selectbox("Welche Grafik brauchst du?", ["Match-Ankündigung (Plakat)", "Endergebnis-Post"])
     
-    # Erweiterte Eingabefelder für den Spieltag
+    # Erweiterte Spieldetails für maximale Flexibilität
     c_g1, c_g2 = st.columns(2)
     with c_g1:
-        gegner_g = st.text_input("Gegner:", "UHC Hamburg", key="gegner_tab4")
-        ort_g = st.text_input("Spielort / Platz:", "Falkenstrasse (Blau)", key="ort_tab4")
+        gegner_g = st.text_input("Gegner:", "UHC Hamburg", key="gegner_tab3_new")
+        ort_g = st.text_input("Spielort / Platz:", "Falkenstrasse (Blau)", key="ort_tab3")
     with c_g2:
-        datum_g = st.text_input("Datum:", datetime.now().strftime("%d.%m.%Y"), key="datum_tab4")
-        zeit_g = st.text_input("Uhrzeit / Anpfiff:", "14:00 Uhr", key="zeit_tab4")
+        datum_g = st.text_input("Datum:", datetime.now().strftime("%d.%m.%Y"), key="datum_tab3")
+        zeit_g = st.text_input("Uhrzeit / Anpfiff:", "14:00 Uhr", key="zeit_tab3")
         
-    info_g = st.text_input("Zusatz-Info (z.B. 'Heimspiel' oder 'Eintritt frei'):", "Heimspiel", key="info_tab4")
+    info_g = st.text_input("Zusatz-Info (z.B. 'Heimspiel', 'Eintritt frei' oder 'Topspiel'):", "Heimspiel", key="info_tab3")
     
     if g_type == "Endergebnis-Post":
         c_e1, c_e2 = st.columns(2)
@@ -237,15 +220,15 @@ with tab4:
         with c_e2: tore_g = st.number_input("Tore Gegner:", value=st.session_state["tore_gegner"])
         
     if st.button("🚀 Grafik jetzt generieren"):
-        # HOHE QUALITÄT: 4K UHD Hochformat (2160 x 3840)
+        # 4K UHD QUALITÄT (2160 x 3840)
         img_g = Image.new("RGB", (2160, 3840), color="#002147")
         draw_g = ImageDraw.Draw(img_g)
         
-        # Vereins-Rahmen zeichnen
+        # Stabiler Kontrast-Rahmen
         draw_g.rectangle([80, 80, 2080, 3760], outline="#ffffff", width=12)
         draw_g.rectangle([80, 80, 2080, 480], fill="#cc0000")
         
-        # Texte bereiten und Umlaute direkt ausschreiben
+        # Texte säubern & Umlaute ausschreiben
         club_title = umlaute_ersetzen("LBV PHOENIX LUEBECK")
         gegner_clean = umlaute_ersetzen(gegner_g)
         ort_clean = umlaute_ersetzen(ort_g)
@@ -256,52 +239,54 @@ with tab4:
         draw_g.text((1080, 280), club_title, fill="#ffffff", anchor="mm", font_size=110)
         
         if g_type == "Match-Ankündigung (Plakat)":
-            draw_g.text((1080, 1200), "NAECHSTES SPIEL", fill="#ffcc00", anchor="mm", font_size=130)
+            draw_g.text((1080, 1100), "NAECHSTES SPIEL", fill="#ffcc00", anchor="mm", font_size=140)
             
-            # Große Match-Box
-            draw_g.rectangle([300, 1500, 1860, 2100], fill="#001124", outline="#ffffff", width=6)
-            draw_g.text((1080, 1680), "LBV PHOENIX", fill="#ffffff", anchor="mm", font_size=90)
-            draw_g.text((1080, 1920), f"vs  {gegner_clean}", fill="#ffffff", anchor="mm", font_size=90)
+            # Match-Box (Massiv und kontrastreich)
+            draw_g.rectangle([250, 1350, 1910, 2050], fill="#001124", outline="#ffffff", width=6)
+            draw_g.text((1080, 1530), "LBV PHOENIX", fill="#ffffff", anchor="mm", font_size=96)
+            draw_g.text((1080, 1720), "VS", fill="#cc0000", anchor="mm", font_size=70)
+            draw_g.text((1080, 1890), gegner_clean, fill="#ffffff", anchor="mm", font_size=96)
             
-            # Spieldaten Boxen/Texte
-            draw_g.text((1080, 2400), f"Platzt: {ort_clean}", fill="#ffffff", anchor="mm", font_size=72)
-            draw_g.text((1080, 2580), f"Datum: {datum_clean}", fill="#ffffff", anchor="mm", font_size=72)
-            draw_g.text((1080, 2760), f"Anpfiff: {zeit_clean}", fill="#ffffff", anchor="mm", font_size=72)
+            # Event-Details gut lesbar blockweise platziert
+            draw_g.rectangle([250, 2250, 1910, 2900], fill="#001a3a", outline="#ffcc00", width=4)
+            draw_g.text((1080, 2370), f"PLATZ:  {ort_clean}", fill="#ffffff", anchor="mm", font_size=76)
+            draw_g.text((1080, 2520), f"DATUM:  {datum_clean}", fill="#ffffff", anchor="mm", font_size=76)
+            draw_g.text((1080, 2670), f"ANPFIFF:  {zeit_clean}", fill="#ffffff", anchor="mm", font_size=76)
             
             if info_clean:
-                draw_g.rectangle([400, 3000, 1760, 3160], fill="#cc0000")
-                draw_g.text((1080, 3080), info_clean, fill="#ffffff", anchor="mm", font_size=64)
+                draw_g.rectangle([350, 3100, 1810, 3280], fill="#cc0000")
+                draw_g.text((1080, 3190), info_clean, fill="#ffffff", anchor="mm", font_size=72)
             
         else: # Endergebnis-Post
-            draw_g.text((1080, 1200), "ENDERGEBNIS", fill="#ffcc00", anchor="mm", font_size=140)
+            draw_g.text((1080, 1100), "ENDERGEBNIS", fill="#ffcc00", anchor="mm", font_size=140)
             
-            # Ergebnis-Kasten
-            draw_g.rectangle([300, 1500, 1860, 2300], fill="#001124", outline="#cc0000", width=8)
-            draw_g.text((1080, 1660), "LBV Phoenix", fill="#ffffff", anchor="mm", font_size=80)
-            draw_g.text((1080, 1900), f"{int(tore_p)} : {int(tore_g)}", fill="#ffffff", anchor="mm", font_size=180)
-            draw_g.text((1080, 2140), gegner_clean, fill="#ffffff", anchor="mm", font_size=80)
+            # Übergroßer Score-Kasten für maximalen Fokus
+            draw_g.rectangle([250, 1350, 1910, 2250], fill="#001124", outline="#cc0000", width=8)
+            draw_g.text((1080, 1510), "LBV Phoenix", fill="#ffffff", anchor="mm", font_size=86)
+            draw_g.text((1080, 1790), f"{int(tore_p)} : {int(tore_g)}", fill="#ffffff", anchor="mm", font_size=210)
+            draw_g.text((1080, 2070), gegner_clean, fill="#ffffff", anchor="mm", font_size=86)
             
-            # Zusatzinfos klein unten drunter
-            draw_g.text((1080, 2450), f"{datum_clean} • {ort_clean}", fill="#aaaaaa", anchor="mm", font_size=50)
+            draw_g.text((1080, 2400), f"{datum_clean}  •  {ort_clean}", fill="#aaaaaa", anchor="mm", font_size=56)
             
-            # Match-Events aus dem Live-Scout einblenden falls vorhanden
+            # Match-Highlights
             if st.session_state["spielbericht_events"]:
-                draw_g.text((1080, 2700), "Highlights:", fill="#ffcc00", anchor="mm", font_size=64)
-                y_offset = 2820
+                draw_g.rectangle([250, 2550, 1910, 3250], fill="#001a3a", outline="#ffffff", width=3)
+                draw_g.text((1080, 2640), "MATCH HIGHLIGHTS", fill="#ffcc00", anchor="mm", font_size=68)
+                y_offset = 2760
                 for ev in st.session_state["spielbericht_events"][:5]:
                     ev_clean = umlaute_ersetzen(ev)
-                    draw_g.text((1080, y_offset), ev_clean, fill="#ffffff", anchor="mm", font_size=56)
+                    draw_g.text((1080, y_offset), ev_clean, fill="#ffffff", anchor="mm", font_size=58)
                     y_offset += 100
 
-        draw_g.text((1080, 3500), "🦅 NUR DER LBV!", fill="#ffffff", anchor="mm", font_size=80)
+        draw_g.text((1080, 3520), "🦅 NUR DER LBV!", fill="#ffffff", anchor="mm", font_size=85)
         
         st.image(img_g, width=350)
         buf_g = io.BytesIO()
         img_g.save(buf_g, format="PNG")
         st.download_button(label="📥 Diese Grafik herunterladen", data=buf_g.getvalue(), file_name=f"phoenix_{g_type.lower().replace(' ', '_')}.png", mime="image/png", type="primary")
 
-# --- TAB 5: LIVE SCOUT & REPORT ---
-with tab5:
+# --- TAB 4: LIVE SCOUT & REPORT ---
+with tab4:
     st.subheader("📝 Live-Match-Scout & Bericht-Generator")
     sc1, sc2 = st.columns(2)
     with sc1:
@@ -330,8 +315,8 @@ with tab5:
                    f"\n-----------------------------------------\n🦅 Nur der LBV!"
     st.text_area("WhatsApp-Bericht kopieren:", bericht_text, height=150)
 
-# --- TAB 6: MANNSCHAFTSKASSE ---
-with tab6:
+# --- TAB 5: MANNSCHAFTSKASSE ---
+with tab5:
     st.subheader("💰 Phönix Mannschaftskasse")
     s_col1, s_col2, s_col3 = st.columns([2, 2, 1])
     with s_col1: s_spieler = st.selectbox("Spieler", kader, key="money_sp")
