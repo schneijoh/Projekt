@@ -1,128 +1,150 @@
 import streamlit as st
 import pandas as pd
+import time
+from datetime import datetime
 
-st.set_page_config(page_title="Hockey Tactical Studio", page_icon="🏑", layout="wide")
+# Seiteneinstellungen
+st.set_page_config(page_title="Hockey Command Center", page_icon="🏑", layout="wide")
 
-st.title("🏑 Hockey Tactical Studio")
-st.caption("Professioneller Matchplaner & Lineup-Creator für Feldhockey")
+# Styling für Hockey-Vibe
+st.markdown("""
+    <style>
+    .main { background-color: #f0f2f6; }
+    .stMetric { background-color: #ffffff; padding: 15px; border-radius: 10px; box-shadow: 2px 2px 5px rgba(0,0,0,0.1); }
+    </style>
+    """, unsafe_allow_html=True)
 
-# --- SESSIONS STATE FÜR SPIELER LISTE ---
+# --- SESSION STATE INITIALISIERUNG ---
 if "players" not in st.session_state:
-    st.session_state["players"] = [
-        "Max (TW)", "Anna", "Lisa", "Tom", "Ben", 
-        "Felix", "Marie", "Lukas", "Emma", "Tim", "Jan"
-    ]
+    st.session_state["players"] = ["TW (Name hier)"] + [f"Spieler {i}" for i in range(1, 15)]
+if "strafen" not in st.session_state:
+    st.session_state["strafen"] = []
 
-# --- SIDEBAR: KADERMANAGEMENT ---
-st.sidebar.header("👥 Kader verwalten")
-new_player = st.sidebar.text_input("Spieler hinzufügen")
-if st.sidebar.button("Hinzufügen") and new_player:
-    st.session_state["players"].append(new_player)
-    st.rerun()
+# --- SIDEBAR: TEAM MANAGEMENT ---
+st.sidebar.title("🏑 Team Management")
+team_name = st.sidebar.text_input("Dein Team-Name", "Mein Hockey Club")
+st.sidebar.markdown("---")
 
-if st.sidebar.button("🗑️ Kader zurücksetzen"):
-    st.session_state["players"] = ["Standard TW"] + [f"Feldspieler {i}" for i in range(1, 11)]
-    st.rerun()
+with st.sidebar.expander("👥 Kader bearbeiten"):
+    player_input = st.text_area("Spielernamen (einer pro Zeile)", "\n".join(st.session_state["players"]))
+    if st.button("Kader aktualisieren"):
+        st.session_state["players"] = [p.strip() for p in player_input.split("\n") if p.strip()]
+        st.success("Kader gespeichert!")
 
-# --- HAUPTBEREICH: TABS FÜR STRATEGIE ---
-tab1, tab2, tab3 = st.tabs(["📋 Aufstellung & Formation", "🎯 Matchplan & Taktik", "🖨️ Export & Drucken"])
+# --- HAUPTBEREICH: TABS ---
+st.title(f"🏆 {team_name} - Command Center")
+tab1, tab2, tab3, tab4 = st.tabs([
+    "📋 Taktik & Lineup", 
+    "🎯 Corner Master", 
+    "⏱️ Karten & Zeitstrafen", 
+    "💰 Mannschaftskasse"
+])
 
-# --- TAB 1: FORMATION ---
+# --- TAB 1: TAKTIK & LINEUP ---
 with tab1:
-    st.subheader("Team-Aufstellung festlegen")
+    st.subheader("Match-Aufstellung & System")
     
-    col_form, col_opp = st.columns(2)
-    with col_form:
-        formation = st.selectbox(
-            "Wähle deine Spielphilosophie (Formation):",
-            ["3-4-3 (Klassisch)", "4-3-3 (Defensiver)", "3-5-2 (Mittelfeld-Dominanz)", "2-4-4 (Volles Pressing)"]
-        )
-    with col_opp:
-        gegner = st.text_input("Gegnerischer Verein", "Mannheimer HC")
+    col_sys, col_press = st.columns(2)
+    with col_sys:
+        formation = st.selectbox("Grundformation:", [
+            "3-4-3 (Klassisches System)",
+            "3-4-3 (Doppel-Sechs)",
+            "4-3-3 (Defensiv-Stabilität)",
+            "3-5-2 (Überzahl Mittelfeld)",
+            "2-4-4 (Extremes Pressing)",
+            "5-3-2 (Schotten-Dicht)"
+        ])
+    with col_press:
+        pressing = st.select_slider("Pressing-Linie:", options=["Viertel", "Halbfeld", "Dreiviertel", "Voll-Pressing"])
 
     st.write("---")
-    st.markdown("### 🏃‍♂️ Positionen besetzen")
-    
-    # Dynamische Zuweisung basierend auf dem Kader
     kader = st.session_state["players"]
     
-    col1, col2, col3, col4 = st.columns(4)
-    
-    with col1:
-        st.info("🧤 Tor & Abwehr")
-        tw = st.selectbox("Torwart (TW)", kader, index=0 if len(kader) > 0 else 0)
-        def1 = st.selectbox("Verteidiger links", kader, index=min(1, len(kader)-1))
-        def2 = st.selectbox("Verteidiger zentral", kader, index=min(2, len(kader)-1))
-        def3 = st.selectbox("Verteidiger rechts", kader, index=min(3, len(kader)-1))
-
-    with col2:
-        st.success("🧠 Mittelfeld")
-        mid1 = st.selectbox("Mittelfeld links", kader, index=min(4, len(kader)-1))
-        mid2 = st.selectbox("Zentrales Mittelfeld", kader, index=min(5, len(kader)-1))
-        mid3 = st.selectbox("Mittelfeld rechts", kader, index=min(6, len(kader)-1))
-
-    with col3:
-        st.warning("⚡ Sturm")
-        sturm1 = st.selectbox("Stürmer links", kader, index=min(7, len(kader)-1))
-        sturm2 = st.selectbox("Mittelstürmer", kader, index=min(8, len(kader)-1))
-        sturm3 = st.selectbox("Stürmer rechts", kader, index=min(9, len(kader)-1))
+    # Positionen visuell gruppiert
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        st.markdown("#### 🧤 Defensive")
+        tw = st.selectbox("Torwart", kader, key="tw")
+        def1 = st.selectbox("VL", kader, index=1, key="vl")
+        def2 = st.selectbox("VZ", kader, index=2, key="vz")
+        def3 = st.selectbox("VR", kader, index=3, key="vr")
         
-    with col4:
-        st.error("🔄 Bank / Wechselspieler")
-        bench = st.multiselect("Auswechselspieler", kader, default=[kader[-1]] if len(kader) > 10 else None)
+    with c2:
+        st.markdown("#### 🧠 Mittelfeld")
+        m1 = st.selectbox("ML", kader, index=4, key="ml")
+        m2 = st.selectbox("MZ (Zentrum)", kader, index=5, key="mz")
+        m3 = st.selectbox("MR", kader, index=6, key="mr")
+        m4 = st.selectbox("MA (Aufbau)", kader, index=7, key="ma")
 
-# --- TAB 2: TAKTIK ---
-with tab2:
-    st.subheader("Match-Strategie & Standardsituationen")
+    with c3:
+        st.markdown("#### ⚡ Sturm")
+        s1 = st.selectbox("SL", kader, index=8, key="sl")
+        s2 = st.selectbox("SZ", kader, index=9, key="sz")
+        s3 = st.selectbox("SR", kader, index=10, key="sr")
     
-    col_taktik1, col_taktik2 = st.columns(2)
-    
-    with col_taktik1:
-        st.markdown("### 🏑 Strafecken (Hausecken)")
-        ecken_schuetze = st.text_input("Schütze (Rausgeber/Schlager)", "Anna (Rausgabe) • Tom (Schlag)")
-        ecken_variante = st.text_area("Variante / Ablauf", "Direkter Schlenzer auf die passive Torwartseite oder Ablage auf den Rechtsstecher.")
-        
-        st.markdown("### 🛡️ Defensiv-Verhalten")
-        def_style = st.radio("Defensiv-System:", ["Halbfeld-Pressing", "Viertel-Pressing", "Manndeckung (Aggressiv)", "Raumdeckung"])
+    st.multiselect("🔄 Wechselspieler (Bank):", kader, default=kader[11:min(15, len(kader))])
 
-    with col_taktik2:
-        st.markdown("### 📝 Trainer-Notizen für die Kabinenansprache")
-        ansprache = st.text_area(
-            "Wichtige Punkte:", 
-            "1. Schnelles Umschaltspiel nach Ballgewinn.\n2. Gegner bei eigenem Abschlag früh unter Druck setzen.\n3. Keine unnötigen Karten riskieren!"
-        )
-        
-        st.markdown("### ⏱️ Viertel-Fokus")
-        v1 = st.text_input("1. & 2. Viertel", "Konzentrierter Aufbau, Ball laufen lassen")
-        v2 = st.text_input("3. & 4. Viertel", "Gegner müde spielen, Konter absichern")
+# --- TAB 2: CORNER MASTER ---
+with tab1: # Wir fügen Corner-Info direkt im Taktik Tab hinzu für den Aushang
+    st.write("---")
+    st.subheader("🎯 Strafecken & Standards")
+    e_col1, e_col2 = st.columns(2)
+    with e_col1:
+        st.info("Eigene Ecken (Offensiv)")
+        raus = st.selectbox("Rausgeber", kader, key="raus")
+        stop = st.selectbox("Stopper", kader, key="stop")
+        schuss = st.multiselect("Schützen (Schlag/Schlenz)", kader, default=[kader[2]])
+    with e_col2:
+        st.error("Gegnerische Ecken (Defensiv)")
+        st.selectbox("Abläufer (1. Welle)", kader, key="w1")
+        st.selectbox("2. Welle / Posten", kader, key="w2")
 
-# --- TAB 3: EXPORT ---
+# --- TAB 3: KARTEN-TIMER ---
 with tab3:
-    st.subheader("📋 Fertiger Matchplan (Übersicht)")
+    st.subheader("⏱️ Live Karten-Strafen Timer")
+    st.write("Verwalte die Zeitstrafen während des Spiels.")
     
-    # HTML/Markdown-Tabelle für eine schöne Druckansicht
-    matchplan_data = {
-        "Kategorie": ["Gegner", "Formation", "Torwart", "Abwehr", "Mittelfeld", "Sturm", "Wechselbank", "Strafecke", "Defensiv-Taktik"],
-        "Details": [
-            gegner, 
-            formation, 
-            tw, 
-            f"{def1}, {def2}, {def3}", 
-            f"{mid1}, {mid2}, {mid3}", 
-            f"{sturm1}, {sturm2}, {sturm3}", 
-            ", ".join(bench) if bench else "Keine", 
-            f"{ecken_schuetze} ({ecken_variante})",
-            def_style
-        ]
-    }
-    
-    df = pd.DataFrame(matchplan_data)
-    st.table(df)
-    
-    st.markdown("### 💡 Kabinen-Aushang")
-    st.info(f"**Ansprache an das Team:**\n\n{ansprache}")
-    
-    # Button zum "Drucken" über den Browser
-    st.write("👉 Nutze `STRG + P` (Windows) oder `CMD + P` (Mac), um diese Seite direkt als PDF für die Kabine auszudrucken!")
+    t_col1, t_col2, t_col3 = st.columns(3)
+    with t_col1:
+        karten_typ = st.radio("Karten-Typ", ["🟢 Grün (2 Min)", "🟡 Gelb (5 Min)", "🟡 Gelb (10 Min)"])
+    with t_col2:
+        straf_spieler = st.selectbox("Spieler auf der Bank", kader, key="straf_sp")
+    with t_col3:
+        if st.button("Strafe starten"):
+            st.warning(f"Timer für {straf_spieler} läuft! (In der Kabine bitte Uhr beachten)")
+            # In einer echten App würde man hier Zeit berechnen, hier als Info:
+            finish_time = "2 Min" if "Grün" in karten_typ else ("5 Min" if "5" in karten_typ else "10 Min")
+            st.write(f"Wieder rein um: **{finish_time} nach Absitzen**")
 
-st.caption("HockeyTactical Studio • 100% Offline & Token-Free")
+# --- TAB 4: MANNSCHAFTSKASSE ---
+with tab4:
+    st.subheader("💰 Team-Strafenkatalog")
+    
+    s_col1, s_col2, s_col3 = st.columns([2, 2, 1])
+    with s_col1:
+        s_spieler = st.selectbox("Wer hat gesündigt?", kader, key="money_sp")
+    with s_col2:
+        grund = st.selectbox("Grund", [
+            "Zu spät zum Treff (5€)", 
+            "Grüne Karte (2€)", 
+            "Gelbe Karte (5€)", 
+            "Ausrüstung vergessen (3€)", 
+            "Handy in der Kabine (2€)",
+            "Kasten vergessen (10€)"
+        ])
+    with s_col3:
+        if st.button("Eintragen"):
+            betrag = grund.split("(")[1].split("€")[0]
+            st.session_state["strafen"].append({"Spieler": s_spieler, "Grund": grund, "Betrag": int(betrag), "Datum": datetime.now().strftime("%d.%m.%y")})
+
+    if st.session_state["strafen"]:
+        df_strafen = pd.DataFrame(st.session_state["strafen"])
+        st.table(df_strafen)
+        st.metric("Gesamtstand Kasse", f"{df_strafen['Betrag'].sum()} €")
+        if st.button("Kasse leeren (Saisonende)"):
+            st.session_state["strafen"] = []
+            st.rerun()
+
+# Footer
+st.write("---")
+st.caption(f"Hockey Command Center v2.0 | Entwickelt für {team_name} | Läuft stabil ohne API-Token")
