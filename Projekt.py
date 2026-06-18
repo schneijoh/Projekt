@@ -5,15 +5,14 @@ st.set_page_config(page_title="HockeyAI Studio", page_icon="🏑", layout="wide"
 
 # --- SIDEBAR: TOKEN FLEXIBEL EINGEBEN ---
 st.sidebar.title("🔑 API-Konfiguration")
-user_token = st.sidebar.text_input("Hugging Face Token (optional)", type="password", help="Ohne Token wird ein älteres Gratis-Modell genutzt. Mit Token kriegst du FLUX.")
+user_token = st.sidebar.text_input("Hugging Face Token (optional)", type="password", help="Ohne Token wird ein freies Basis-Modell genutzt. Mit Token kriegst du FLUX.")
 
 if user_token:
     client = InferenceClient(token=user_token)
     st.sidebar.success("🔒 Eigener Token aktiv! (FLUX freigeschaltet)")
 else:
-    # Absolut Token-freier Client
     client = InferenceClient() 
-    st.sidebar.warning("⚠️ Kein Token eingetragen. Nutze die 100% freie Basis-API.")
+    st.sidebar.warning("⚠️ Kein Token eingetragen. Nutze die freie Basis-API.")
 
 # --- APP HEADER ---
 st.title("🏑 HockeyAI Studio")
@@ -49,8 +48,8 @@ with tab1:
                 "dramatic focus on the field hockey ball and stick"
             ]
             
-            # WICHTIG: Wenn kein Token da ist, nutzen wir das klassische v1-5, das keinen 401-Fehler wirft
-            model_to_use = "black-forest-labs/FLUX.1-schnell" if user_token else "runwayml/stable-diffusion-v1-5"
+            # CompVis/stable-diffusion-v1-4 läuft direkt über HF und blockiert ohne Token seltener
+            model_to_use = "black-forest-labs/FLUX.1-schnell" if user_token else "CompVis/stable-diffusion-v1-4"
             
             for i in range(4):
                 prompt = f"{base_prompt}, {styles[i]}, photorealistic, 8k"
@@ -72,7 +71,7 @@ with tab2:
         if st.button("Episch machen"):
             with st.spinner("Künstliche Intelligenz arbeitet..."):
                 prompt = f"Professional field hockey scene, {extra}, green artificial turf stadium, hyper-realistic"
-                model_to_use = "black-forest-labs/FLUX.1-schnell" if user_token else "runwayml/stable-diffusion-v1-5"
+                model_to_use = "black-forest-labs/FLUX.1-schnell" if user_token else "CompVis/stable-diffusion-v1-4"
                 try:
                     image = client.text_to_image(prompt, model=model_to_use)
                     st.image(image, caption="Dein generiertes Highlight")
@@ -87,17 +86,16 @@ with tab3:
             current_score = st.session_state["gameday_score"]
             current_opponent = st.session_state["gameday_opponent"]
             
-            # Textgenerierung ohne Token klappt am besten mit universellen Modellen
             text_model = "meta-llama/Llama-3.1-8B-Instruct"
             try:
+                # Hier wurde 'max_tokens' zu 'max_new_tokens' korrigiert!
                 response = client.text_generation(
                     f"Erstelle 8 kreative und kurze Instagram Reel und Story Ideen für ein Feldhockey Spiel. Ergebnis: {current_score} gegen {current_opponent}.",
                     model=text_model,
-                    max_tokens=600
+                    max_new_tokens=600
                 )
                 st.write(response)
             except Exception as e:
-                # Kleiner Hinweis für den Nutzer falls auch Llama ohne Token blockiert
-                st.error(f"Fehler: {str(e)[:100]}. Tipp: Trage links in der Sidebar einen kostenlosen HF-Token ein, falls das Limit erreicht ist.")
+                st.error(f"Fehler: {str(e)[:120]}")
 
-st.caption("HockeyAI Studio • Smart Fallback Edition")
+st.caption("HockeyAI Studio • Fixed Parameter Edition")
