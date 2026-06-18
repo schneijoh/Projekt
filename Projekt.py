@@ -3,6 +3,53 @@ import pandas as pd
 from datetime import datetime
 from PIL import Image, ImageDraw
 import io
+import time
+
+# --- STREAMLIT CONFIG (Muss ganz oben stehen) ---
+st.set_page_config(page_title="LBV Phoenix Command Center", page_icon="🦅", layout="wide")
+
+# --- LADESCREEN (Zentraler Einstieg) ---
+if "app_geladen" not in st.session_state:
+    st.session_state["app_geladen"] = False
+
+if not st.session_state["app_geladen"]:
+    # Edles Phönix-Design für das Intro
+    st.markdown("""
+        <style>
+        .loading-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 70vh;
+            font-family: 'Arial', sans-serif;
+            color: #002147;
+        }
+        .spinner {
+            border: 8px solid #f4f6f9;
+            border-top: 8px solid #cc0000;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        </style>
+        <div class="loading-container">
+            <div class="spinner"></div>
+            <h1 style="font-size: 40px; letter-spacing: 2px;">LBV PHOENIX LUEBECK</h1>
+            <p style="font-size: 18px; color: #555;">Command Center wird initialisiert...</p>
+        </div>
+    """, unsafe_allow_html=True)
+    
+    # Künstliche kurze Verzögerung für den "App-Lade-Effekt"
+    time.sleep(2.0)
+    st.session_state["app_geladen"] = True
+    st.rerun()
 
 # --- HILFSFUNKTION FÜR UMLAUTE ---
 def umlaute_ersetzen(text):
@@ -17,9 +64,7 @@ def umlaute_ersetzen(text):
         text = text.replace(umlaut, ersetzung)
     return text
 
-# --- STREAMLIT CONFIG & DESIGN ---
-st.set_page_config(page_title="LBV Phoenix Command Center", page_icon="🦅", layout="wide")
-
+# --- DESIGN & CSS NACH DEM LADEN ---
 st.markdown("""
     <style>
     .main { background-color: #f4f6f9; }
@@ -190,35 +235,41 @@ with tab2:
         img.save(buf, format="PNG")
         st.download_button(label="📥 Kader-Story herunterladen", data=buf.getvalue(), file_name="phoenix_kader.png", mime="image/png", type="primary")
 
-# --- TAB 3: WEITERE GRAFIKEN (ERWEITERT & DYNAMISCH) ---
+# --- TAB 3: WEITERE GRAFIKEN (MAXIMAL ERWEITERT AUF 8 TYPEN) ---
 with tab3:
     st.subheader("🎨 Weitere nützliche Grafiken erstellen")
-    st.write("Wähle das passende Event-Format. Alle Grafiken werden hochauflösend (4K) ausgegeben.")
+    st.write("Wähle das passende Event-Format. Alle Grafiken werden hochauflösend (4K UHD) ausgegeben.")
     
-    # Auswahlliste stark vergrößert
+    # Riesige Auswahl an Grafiktypen
     g_type = st.selectbox("Welche Grafik brauchst du?", [
         "Match-Ankündigung (Plakat)", 
         "Halbzeitstand-Post", 
         "Endergebnis-Post", 
+        "Spieler des Tages (MVP)",
+        "Mannschaftskasse / Strafen-Summary",
         "Absage / Spielverlegung", 
+        "Sponsoring / Danke-Post",
         "Freitext-Info-Post (z.B. Event/Party)"
     ])
     
-    # Basisdaten-Eingabe (Für fast alle Typen relevant)
+    # Basisdaten-Felder
     c_g1, c_g2 = st.columns(2)
     with c_g1:
-        gegner_g = st.text_input("Gegner:", "UHC Hamburg", key="gegner_tab3_new") if g_type != "Freitext-Info-Post (z.B. Event/Party)" else ""
-        ort_g = st.text_input("Spielort / Location:", "Falkenstrasse (Blau)", key="ort_tab3")
+        gegner_g = st.text_input("Gegner:", "UHC Hamburg", key="gegner_tab3_new") if g_type in ["Match-Ankündigung (Plakat)", "Halbzeitstand-Post", "Endergebnis-Post", "Absage / Spielverlegung"] else ""
+        ort_g = st.text_input("Spielort / Location:", "Falkenstrasse (Blau)", key="ort_tab3") if g_type != "Mannschaftskasse / Strafen-Summary" else ""
     with c_g2:
-        datum_g = st.text_input("Datum:", datetime.now().strftime("%d.%m.%Y"), key="datum_tab3")
-        zeit_g = st.text_input("Uhrzeit:", "14:00 Uhr", key="zeit_tab3")
+        datum_g = st.text_input("Datum:", datetime.now().strftime("%d.%m.%Y"), key="datum_tab3") if g_type != "Mannschaftskasse / Strafen-Summary" else ""
+        zeit_g = st.text_input("Uhrzeit / Frist:", "14:00 Uhr", key="zeit_tab3") if g_type != "Mannschaftskasse / Strafen-Summary" else ""
         
-    # Dynamische Zusatzfelder je nach Grafiktyp
+    # Dynamische Variablen initialisieren
     tore_p, tore_g = 0, 0
     freitext_titel = ""
     freitext_inhalt = ""
     info_g = ""
+    mvp_spieler = ""
+    mvp_begruendung = ""
     
+    # Spezifische Inputs je nach Auswahl
     if g_type in ["Endergebnis-Post", "Halbzeitstand-Post"]:
         c_e1, c_e2 = st.columns(2)
         with c_e1: tore_p = st.number_input("Tore Phönix:", value=st.session_state["tore_phönix"], min_value=0, step=1)
@@ -227,34 +278,38 @@ with tab3:
     if g_type == "Match-Ankündigung (Plakat)":
         info_g = st.text_input("Zusatz-Info (z.B. 'Topspiel', 'Eintritt frei'):", "Heimspiel", key="info_tab3")
     elif g_type == "Absage / Spielverlegung":
-        info_g = st.text_input("Grund / Info (z.B. 'Nachholtermin folgt'):", "Spiel fällt witterungsbedingt aus!", key="absage_tab3")
+        info_g = st.text_input("Grund / Info (z.B. 'Nachholtermin folgt'):", "Spiel faellt witterungsbedingt aus!", key="absage_tab3")
+    elif g_type == "Spieler des Tages (MVP)":
+        mvp_spieler = st.selectbox("Wähle den MVP:", kader)
+        mvp_begruendung = st.text_input("Kurze Begründung (z.B. '3 Tore & Traum-Performance'):", "Starke Parade in der Schlussminute!")
+    elif g_type == "Sponsoring / Danke-Post":
+        freitext_inhalt = st.text_area("Danksagungstext:", "Vielen Dank an alle Zuschauer und Sponsoren fuer den sensationellen Support am Spielfeldrand!")
     elif g_type == "Freitext-Info-Post (z.B. Event/Party)":
         freitext_titel = st.text_input("Überschrift des Posts:", "MANNSCHAFTSABEND")
-        freitext_inhalt = st.text_area("Inhalt / Beschreibung:", "Kommt alle vorbei! Für kalte Getränke und Grillgut ist gesorgt. Start nach dem Training.")
+        freitext_inhalt = st.text_area("Inhalt / Beschreibung:", "Kommt alle vorbei! Fuer kalte Getraenke und Grillgut ist gesorgt. Start nach dem Training.")
 
     if st.button("🚀 Grafik jetzt generieren"):
-        # 4K UHD QUALITÄT (2160 x 3840) für gestochen scharfe Social-Media-Posts
+        # 4K UHD QUALITÄT (2160 x 3840)
         img_g = Image.new("RGB", (2160, 3840), color="#002147")
         draw_g = ImageDraw.Draw(img_g)
         
-        # Stabiler Rahmen & Roter Header-Balken
+        # Gebrandeter Vereins-Rahmen
         draw_g.rectangle([80, 80, 2080, 3760], outline="#ffffff", width=12)
         draw_g.rectangle([80, 80, 2080, 480], fill="#cc0000")
         
-        # Standard-Texte säubern & Umlaute ausschreiben
         club_title = umlaute_ersetzen("LBV PHOENIX LUEBECK")
+        draw_g.text((1080, 280), club_title, fill="#ffffff", anchor="mm", font_size=110)
+        
+        # Clean-Strings vorbereiten
         gegner_clean = umlaute_ersetzen(gegner_g)
         ort_clean = umlaute_ersetzen(ort_g)
         datum_clean = umlaute_ersetzen(datum_g)
         zeit_clean = umlaute_ersetzen(zeit_g)
         info_clean = umlaute_ersetzen(info_g)
-        
-        draw_g.text((1080, 280), club_title, fill="#ffffff", anchor="mm", font_size=110)
-        
-        # --- TYP 1: MATCH-ANKÜNDIGUNG ---
+
+        # --- 1. MATCH ANKÜNDIGUNG ---
         if g_type == "Match-Ankündigung (Plakat)":
             draw_g.text((1080, 1100), "NAECHSTES SPIEL", fill="#ffcc00", anchor="mm", font_size=140)
-            
             draw_g.rectangle([250, 1350, 1910, 2050], fill="#001124", outline="#ffffff", width=6)
             draw_g.text((1080, 1530), "LBV PHOENIX", fill="#ffffff", anchor="mm", font_size=96)
             draw_g.text((1080, 1720), "VS", fill="#cc0000", anchor="mm", font_size=70)
@@ -264,77 +319,110 @@ with tab3:
             draw_g.text((1080, 2370), f"PLATZ:  {ort_clean}", fill="#ffffff", anchor="mm", font_size=76)
             draw_g.text((1080, 2520), f"DATUM:  {datum_clean}", fill="#ffffff", anchor="mm", font_size=76)
             draw_g.text((1080, 2670), f"ANPFIFF:  {zeit_clean}", fill="#ffffff", anchor="mm", font_size=76)
-            
             if info_clean:
                 draw_g.rectangle([350, 3100, 1810, 3280], fill="#cc0000")
                 draw_g.text((1080, 3190), info_clean.upper(), fill="#ffffff", anchor="mm", font_size=72)
             
-        # --- TYP 2: HALBZEITSTAND ---
+        # --- 2. HALBZEITSTAND ---
         elif g_type == "Halbzeitstand-Post":
             draw_g.text((1080, 1100), "HALBZEITSTAND", fill="#ffcc00", anchor="mm", font_size=140)
-            
             draw_g.rectangle([250, 1350, 1910, 2250], fill="#001124", outline="#ffffff", width=8)
             draw_g.text((1080, 1510), "LBV Phoenix", fill="#ffffff", anchor="mm", font_size=86)
             draw_g.text((1080, 1790), f"{int(tore_p)} : {int(tore_g)}", fill="#ffffff", anchor="mm", font_size=210)
             draw_g.text((1080, 2070), gegner_clean, fill="#ffffff", anchor="mm", font_size=86)
-            
             draw_g.text((1080, 2500), "Gleich geht's weiter!", fill="#ffffff", anchor="mm", font_size=76)
-            draw_g.text((1080, 2650), f"{ort_clean}", fill="#aaaaaa", anchor="mm", font_size=56)
 
-        # --- TYP 3: ENDERGEBNIS ---
+        # --- 3. ENDERGEBNIS ---
         elif g_type == "Endergebnis-Post":
             draw_g.text((1080, 1100), "ENDERGEBNIS", fill="#ffcc00", anchor="mm", font_size=140)
-            
             draw_g.rectangle([250, 1350, 1910, 2250], fill="#001124", outline="#cc0000", width=8)
             draw_g.text((1080, 1510), "LBV Phoenix", fill="#ffffff", anchor="mm", font_size=86)
             draw_g.text((1080, 1790), f"{int(tore_p)} : {int(tore_g)}", fill="#ffffff", anchor="mm", font_size=210)
             draw_g.text((1080, 2070), gegner_clean, fill="#ffffff", anchor="mm", font_size=86)
             
-            draw_g.text((1080, 2400), f"{datum_clean}  •  {ort_clean}", fill="#aaaaaa", anchor="mm", font_size=56)
-            
             if st.session_state["spielbericht_events"]:
-                draw_g.rectangle([250, 2550, 1910, 3250], fill="#001a3a", outline="#ffffff", width=3)
-                draw_g.text((1080, 2640), "MATCH HIGHLIGHTS", fill="#ffcc00", anchor="mm", font_size=68)
-                y_offset = 2760
+                draw_g.rectangle([250, 2450, 1910, 3150], fill="#001a3a", outline="#ffffff", width=3)
+                draw_g.text((1080, 2540), "MATCH HIGHLIGHTS", fill="#ffcc00", anchor="mm", font_size=68)
+                y_offset = 2660
                 for ev in st.session_state["spielbericht_events"][:5]:
                     draw_g.text((1080, y_offset), umlaute_ersetzen(ev), fill="#ffffff", anchor="mm", font_size=58)
-                    y_offset += 100
+                    y_offset += 90
 
-        # --- TYP 4: ABSAGE / SPIELVERLEGUNG ---
+        # --- 4. SPIELER DES TAGES (MVP) ---
+        elif g_type == "Spieler des Tages (MVP)":
+            draw_g.text((1080, 1100), "SPIELER DES TAGES", fill="#ffcc00", anchor="mm", font_size=130)
+            draw_g.text((1080, 1220), "🔥 MVP 🔥", fill="#ffffff", anchor="mm", font_size=80)
+            
+            draw_g.rectangle([200, 1450, 1960, 1950], fill="#cc0000", outline="#ffffff", width=6)
+            draw_g.text((1080, 1700), umlaute_ersetzen(mvp_spieler).upper(), fill="#ffffff", anchor="mm", font_size=110)
+            
+            draw_g.rectangle([200, 2150, 1960, 2650], fill="#001124", outline="#ffcc00", width=4)
+            draw_g.text((1080, 2400), umlaute_ersetzen(mvp_begruendung), fill="#ffffff", anchor="mm", font_size=60)
+            draw_g.text((1080, 2900), f"Match vom {datum_clean}", fill="#aaaaaa", anchor="mm", font_size=56)
+
+        # --- 5. MANNSCHAFTSKASSE SUMMARY ---
+        elif g_type == "Mannschaftskasse / Strafen-Summary":
+            draw_g.text((1080, 1050), "MANNSCHAFTSKASSE", fill="#ffcc00", anchor="mm", font_size=130)
+            draw_g.text((1080, 1180), "OFFENE STRAFEN & KASSENSTAND", fill="#ffffff", anchor="mm", font_size=64)
+            
+            # Kassenstand holen
+            gesamt = sum(item['Betrag'] for item in st.session_state["strafen"]) if st.session_state["strafen"] else 0
+            
+            draw_g.rectangle([350, 1350, 1710, 1650], fill="#001124", outline="#cc0000", width=6)
+            draw_g.text((1080, 1500), f"AKTEULLER STAND: {gesamt} EUR", fill="#ffffff", anchor="mm", font_size=86)
+            
+            # Die letzten Einträge auflisten
+            draw_g.rectangle([200, 1800, 1960, 3100], fill="#001a3a", outline="#ffffff", width=4)
+            draw_g.text((1080, 1900), "LETZTE BUCHUNGEN:", fill="#ffcc00", anchor="mm", font_size=64)
+            
+            if st.session_state["strafen"]:
+                y_s = 2050
+                for s in st.session_state["strafen"][-8:]: # Letzten 8 anzeigen
+                    s_line = f"{s['Spieler']} - {s['Grund']} ({s['Datum']})"
+                    draw_g.text((1080, y_s), umlaute_ersetzen(s_line), fill="#ffffff", anchor="mm", font_size=54)
+                    y_s += 110
+            else:
+                draw_g.text((1080, 2400), "Keine offenen Strafen registriert!", fill="#aaaaaa", anchor="mm", font_size=58)
+
+        # --- 6. ABSAGE / SPIELVERLEGUNG ---
         elif g_type == "Absage / Spielverlegung":
             draw_g.text((1080, 1100), "SPIELABSAGE", fill="#cc0000", anchor="mm", font_size=140)
-            
             draw_g.rectangle([250, 1350, 1910, 1850], fill="#001124", outline="#ffffff", width=6)
             draw_g.text((1080, 1500), "LBV Phoenix", fill="#ffffff", anchor="mm", font_size=86)
             draw_g.text((1080, 1680), f"vs  {gegner_clean}", fill="#ffffff", anchor="mm", font_size=86)
             
             draw_g.rectangle([250, 2050, 1910, 2650], fill="#cc0000", outline="#ffffff", width=4)
             draw_g.text((1080, 2350), info_clean.upper(), fill="#ffffff", anchor="mm", font_size=70)
-            
-            draw_g.text((1080, 2900), f"Geplantes Spiel vom {datum_clean}", fill="#aaaaaa", anchor="mm", font_size=60)
 
-        # --- TYP 5: FREITEXT POST ---
+        # --- 7. SPONSORING & DANKE ---
+        elif g_type == "Sponsoring / Danke-Post":
+            draw_g.text((1080, 1100), "VIELEN DANK", fill="#ffcc00", anchor="mm", font_size=140)
+            draw_g.rectangle([200, 1350, 1960, 2500], fill="#001a3a", outline="#ffffff", width=6)
+            
+            lines = umlaute_ersetzen(freitext_inhalt).split("\n")
+            y_o = 1600
+            for l in lines:
+                draw_g.text((1080, y_o), l, fill="#ffffff", anchor="mm", font_size=64)
+                y_o += 120
+
+        # --- 8. FREITEXT INFOPPOST ---
         elif g_type == "Freitext-Info-Post (z.B. Event/Party)":
             titel_clean = umlaute_ersetzen(freitext_titel).upper()
             inhalt_clean = umlaute_ersetzen(freitext_inhalt)
             
             draw_g.text((1080, 1000), titel_clean, fill="#ffcc00", anchor="mm", font_size=120)
-            
-            # Große Infobox in der Mitte
             draw_g.rectangle([200, 1200, 1960, 2600], fill="#001a3a", outline="#ffffff", width=6)
             
-            # Textumbruch-Logik für Textfelder (simpel zeilenweise)
             lines = inhalt_clean.split("\n")
             y_text_offset = 1400
             for line in lines:
                 draw_g.text((1080, y_text_offset), line, fill="#ffffff", anchor="mm", font_size=64)
                 y_text_offset += 110
                 
-            # Fußzeile der Infobox für Orga-Daten
             draw_g.text((1080, 2800), f"WANN: {datum_clean} um {zeit_clean}", fill="#ffffff", anchor="mm", font_size=70)
             draw_g.text((1080, 2950), f"WO: {ort_clean}", fill="#ffffff", anchor="mm", font_size=70)
 
-        # Fester, edler Abschluss für das Corporate-Gefühl
+        # Footer
         draw_g.text((1080, 3520), "🦅 NUR DER LBV!", fill="#ffffff", anchor="mm", font_size=85)
         
         st.image(img_g, width=350)
