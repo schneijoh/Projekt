@@ -1,3 +1,4 @@
 streamlit
 pillow
 huggingface_hub
+pip install torch torchvision pillow pandas streamlit
