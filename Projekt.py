@@ -1,36 +1,14 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageEnhance
 import io
 import time
-
-# Für das Bilderkennungs-Feature (Leichtgewichtig & Lokal)
-import torch
-import torchvision.models as models
-import torchvision.transforms as transforms
+import numpy as np
+import cv2
 
 # --- STREAMLIT CONFIG (Muss ganz oben stehen) ---
 st.set_page_config(page_title="LBV Phoenix CC", page_icon="🦅", layout="wide")
-
-# --- INITIALISIERUNG KI-MODELL ---
-@st.cache_resource
-def load_vision_model():
-    # Lädt ein schlankes, vortrainiertes MobileNetV2 für die Bilderkennung
-    model = models.mobilenet_v2(weights=models.MobileNet_V2_Weights.DEFAULT)
-    model.eval()
-    
-    # Laden der Standard ImageNet-Klassen für die Textausgabe
-    import urllib.request
-    labels_url = "https://raw.githubusercontent.com/pytorch/hub/master/imagenet_classes.txt"
-    categories = urllib.request.urlopen(labels_url).read().decode("utf-8").splitlines()
-    
-    return model, categories
-
-try:
-    vision_model, imagenet_labels = load_vision_model()
-except Exception as e:
-    vision_model, imagenet_labels = None, []
 
 # --- LADESCREEN ---
 if "app_geladen" not in st.session_state:
@@ -41,8 +19,7 @@ if not st.session_state["app_geladen"]:
         <style>
         .loading-container {
             display: flex; flex-direction: column; align-items: center; justify-content: center;
-            height: 70vh; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            color: #002147; text-align: center;
+            height: 70vh; font-family: 'Segoe UI', sans-serif; color: #002147; text-align: center;
         }
         .spinner {
             border: 6px solid #f4f6f9; border-top: 6px solid #cc0000; border-radius: 50%;
@@ -52,11 +29,11 @@ if not st.session_state["app_geladen"]:
         </style>
         <div class="loading-container">
             <div class="spinner"></div>
-            <h1 style="font-size: 36px; letter-spacing: 2px; margin-bottom: 5px;">LBV PHOENIX</h1>
-            <p style="font-size: 18px; color: #666;">💥 Mobile Command Center & AI Vision wird geladen...</p>
+            <h1 style="font-size: 36px; letter-spacing: 2px;">LBV PHOENIX</h1>
+            <p style="font-size: 18px; color: #666;">Mobile Command Center wird optimiert...</p>
         </div>
     """, unsafe_allow_html=True)
-    time.sleep(1.5)
+    time.sleep(1.2)
     st.session_state["app_geladen"] = True
     st.rerun()
 
@@ -71,37 +48,21 @@ def umlaute_ersetzen(text):
 # --- MODERNES BRANDING & CSS ---
 st.markdown("""
     <style>
-    /* Globales Setzen von Schriftarten und Hintergründen */
-    .stApp { background-color: #f7f9fc; font-family: 'Segoe UI', Roboto, sans-serif; }
-    
-    /* Elegant überarbeitete Tabs */
+    .stApp { background-color: #f7f9fc; font-family: 'Segoe UI', sans-serif; }
     .stTabs [data-baseweb="tab"] { 
-        color: #002147; font-weight: 700; font-size: 15px; 
-        padding: 12px 20px; background-color: #ffffff;
-        border-radius: 8px 8px 0px 0px; margin-right: 4px;
-        border: 1px solid #e1e4e8; transition: all 0.3s ease;
+        color: #002147; font-weight: 700; font-size: 15px; padding: 12px 20px; 
+        background-color: #ffffff; border-radius: 8px 8px 0px 0px; margin-right: 4px;
+        border: 1px solid #e1e4e8;
     }
     .stTabs [aria-selected="true"] { 
         color: #ffffff !important; background-color: #002147 !important; 
-        border-color: #002147 !important; box-shadow: 0px 4px 10px rgba(0,33,71,0.15);
     }
-    
-    /* Titel-Styling */
     .main-title { text-align: center; color: #002147; font-weight: 800; font-size: 32px; margin-bottom: 20px; }
-    
-    /* Karten-Design für Widgets */
     .custom-card {
         background-color: #ffffff; padding: 20px; border-radius: 12px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.05); border-left: 6px solid #cc0000;
-        margin-bottom: 20px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.05); border-left: 6px solid #cc0000; margin-bottom: 20px;
     }
-    
-    /* Mobil-optimierte Full-Width Buttons */
-    div.stButton > button {
-        width: 100%; border-radius: 8px; font-weight: bold; padding: 10px;
-        transition: transform 0.1s ease;
-    }
-    div.stButton > button:active { transform: scale(0.98); }
+    div.stButton > button { width: 100%; border-radius: 8px; font-weight: bold; padding: 10px; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -126,49 +87,35 @@ if len(kader) < 11:
     st.error("⚠️ Mindestens 11 Spieler benötigt.")
     st.stop()
 
-# --- TABS CREATION ---
+# --- TABS ---
 tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
     "📋 Aufstellung", "📸 Aufst.-Grafik", "🎨 Content-Gen", 
-    "📝 Live-Ticker", "💰 Mannschaftskasse", "👁️ KI-Bilderkennung", "📊 Taktik & xG"
+    "📝 Live-Ticker", "💰 Mannschaftskasse", "👁️ Bild-Analyse (KI)", "📊 Taktik & xG"
 ])
 
 # --- TAB 1: AUFSTELLUNG ---
 with tab1:
     st.markdown('<div class="custom-card"><h3>⚽ System & Startelf festlegen</h3>', unsafe_allow_html=True)
     formation = st.selectbox("Spielsystem:", ["4-3-3", "3-4-3", "3-5-2", "2-4-4"])
-    
     anzahl_def, anzahl_mid, anzahl_sturm = map(int, formation.split("-"))
     stamm_aufstellung = []
     
     col1, col2, col3 = st.columns(3)
-    
     with col1:
         st.markdown("**🧤 Tor**")
         tw_val = st.selectbox("Torwart", kader, index=0, key="tw_m")
         stamm_aufstellung.append(tw_val)
-        
         st.markdown(f"**🛡️ Abwehr ({anzahl_def})**")
-        def_spieler = []
-        for i in range(anzahl_def):
-            val = st.selectbox(f"Verteidiger {i+1}", kader, index=min(1 + i, len(kader)-1), key=f"def_{i}")
-            def_spieler.append(val)
-            stamm_aufstellung.append(val)
-            
+        def_spieler = [st.selectbox(f"Verteidiger {i+1}", kader, index=min(1 + i, len(kader)-1), key=f"def_{i}") for i in range(anzahl_def)]
+        stamm_aufstellung.extend(def_spieler)
     with col2:
         st.markdown(f"**🧠 Mittelfeld ({anzahl_mid})**")
-        mid_spieler = []
-        for i in range(anzahl_mid):
-            val = st.selectbox(f"Mittelfeld {i+1}", kader, index=min(1 + anzahl_def + i, len(kader)-1), key=f"mid_{i}")
-            mid_spieler.append(val)
-            stamm_aufstellung.append(val)
-            
+        mid_spieler = [st.selectbox(f"Mittelfeld {i+1}", kader, index=min(1 + anzahl_def + i, len(kader)-1), key=f"mid_{i}") for i in range(anzahl_mid)]
+        stamm_aufstellung.extend(mid_spieler)
     with col3:
         st.markdown(f"**⚡ Sturm ({anzahl_sturm})**")
-        sturm_spieler = []
-        for i in range(anzahl_sturm):
-            val = st.selectbox(f"Stürmer {i+1}", kader, index=min(1 + anzahl_def + anzahl_mid + i, len(kader)-1), key=f"sturm_{i}")
-            sturm_spieler.append(val)
-            stamm_aufstellung.append(val)
+        sturm_spieler = [st.selectbox(f"Stürmer {i+1}", kader, index=min(1 + anzahl_def + anzahl_mid + i, len(kader)-1), key=f"sturm_{i}") for i in range(anzahl_sturm)]
+        stamm_aufstellung.extend(sturm_spieler)
 
     moegliche_bank = [p for p in kader if p not in stamm_aufstellung]
     st.markdown('</div>', unsafe_allow_html=True)
@@ -178,42 +125,32 @@ with tab1:
     else: st.caption("Keine Auswechselspieler verfügbar.")
     st.markdown('</div>', unsafe_allow_html=True)
 
-# --- TAB 2 & 3: GRAFIKEN (Beibehalten & optimiert) ---
+# --- TAB 2: GRAFIK ---
 with tab2:
     st.subheader("📸 Startelf-Story exportieren")
     gegner_media = st.text_input("Gegner:", "UHC Hamburg", key="gegner_tab2")
-    design_typ = st.radio("Design:", ["🔵 Falkenstraße Homefield (Blau)", "🔵⚪🔴 Phönix Matchday Classic", "⚪🔵🔴 Phönix Clean White"])
     
     if st.button("🚀 Aufstellungs-Grafik generieren"):
-        img = Image.new("RGB", (2160, 3840))
+        img = Image.new("RGB", (1080, 1920), color="#002147")
         draw = ImageDraw.Draw(img)
-        if "Homefield" in design_typ:
-            bg, accent, text = "#004B87", "#cc0000", "#ffffff"
-            draw.rectangle([0, 0, 2160, 3840], fill=bg)
-        elif "Classic" in design_typ:
-            bg, accent, text = "#001530", "#cc0000", "#ffffff"
-            draw.rectangle([0, 0, 2160, 3840], fill=bg)
-        else:
-            bg, accent, text = "#ffffff", "#002147", "#002147"
-            draw.rectangle([0, 0, 2160, 3840], fill=bg)
-            
-        # Platzhalterboxen & Text-Rendering analog deines Layouts
-        draw.text((1080, 260), umlaute_ersetzen("LBV PHOENIX LUEBECK"), fill=text if bg!="#ffffff" else "#002147", anchor="mm", font_size=116)
-        draw.text((1080, 640), umlaute_ersetzen(f"STARTING XI vs {gegner_media}"), fill=accent, anchor="mm", font_size=92)
-        draw.text((1080, 1140), umlaute_ersetzen(f"🧤 TW: {tw_val}"), fill=text, anchor="mm", font_size=78)
-        draw.text((1080, 1580), umlaute_ersetzen(f"🛡️ DEF: {' • '.join(def_spieler)}"), fill=text, anchor="mm", font_size=74)
-        draw.text((1080, 2020), umlaute_ersetzen(f"🧠 MID: {' • '.join(mid_spieler)}"), fill=text, anchor="mm", font_size=74)
-        draw.text((1080, 2460), umlaute_ersetzen(f"⚡ STURM: {' • '.join(sturm_spieler)}"), fill=text, anchor="mm", font_size=74)
+        draw.rectangle([40, 40, 1040, 1880], outline="#ffffff", width=8)
+        
+        draw.text((540, 150), "LBV PHOENIX LUEBECK", fill="#ffffff", anchor="mm", font_size=50)
+        draw.text((540, 250), f"vs {gegner_media}", fill="#cc0000", anchor="mm", font_size=40)
+        draw.text((540, 450), f"🧤 TW: {tw_val}", fill="#ffffff", anchor="mm", font_size=35)
+        draw.text((540, 650), f"🛡️ DEF: {' • '.join(def_spieler)}", fill="#ffffff", anchor="mm", font_size=32)
+        draw.text((540, 850), f"🧠 MID: {' • '.join(mid_spieler)}", fill="#ffffff", anchor="mm", font_size=32)
+        draw.text((540, 1050), f"⚡ STURM: {' • '.join(sturm_spieler)}", fill="#ffffff", anchor="mm", font_size=32)
         
         st.image(img, width=300)
         buf = io.BytesIO()
         img.save(buf, format="PNG")
         st.download_button("📥 Grafik herunterladen", data=buf.getvalue(), file_name="phoenix_lineup.png", mime="image/png")
 
+# --- TAB 3: CONTENT GENERATOR ---
 with tab3:
     st.subheader("🎨 Content & Story Generator")
-    # Beibehalten aus Altem Code, kompakt dargestellt
-    st.info("Generiere hier Match-Ankündigungen, MVPs oder Endergebnis-Karten im Vereinslook.")
+    st.info("Nutze die Grafik-Exporte aus Tab 2, um Content für Instagram direkt im Web-View zu speichern.")
 
 # --- TAB 4: LIVE TICKER ---
 with tab4:
@@ -235,7 +172,7 @@ with tab4:
 
 # --- TAB 5: KASSE ---
 with tab5:
-    st.subheader("💰 Strafen-Registrierung")
+    st.subheader("💰 Mannschaftskasse")
     s_spieler = st.selectbox("Spieler:", kader, key="kasse_s")
     grund = st.selectbox("Vergehen:", ["Zu spät (5€)", "Grüne Karte (2€)", "Gelbe Karte (5€)", "Kasten vergessen (10€)"])
     if st.button("Euro buchen 💶"):
@@ -246,64 +183,51 @@ with tab5:
     if st.session_state["strafen"]:
         st.table(pd.DataFrame(st.session_state["strafen"]))
 
-# --- TAB 6: KI-BILDERKENNUNG (NEU) ---
+# --- TAB 6: COMPUTER VISION BILD-ANALYSE (Sicher & Leichtgewichtig) ---
 with tab6:
-    st.markdown('<div class="custom-card"><h3>👁️ Phoenix AI Vision Analyzer</h3>', unsafe_allow_html=True)
-    st.write("Lade ein Bild hoch (z.B. ein Foto vom gegnerischen Taktikboard, Ausrüstung oder Spielszenen), um es mittels Deep Learning zu klassifizieren.")
+    st.markdown('<div class="custom-card"><h3>👁️ Phoenix Tactical Image Analyzer</h3>', unsafe_allow_html=True)
+    st.write("Analysiere Fotos von Taktikboards oder Spielszenen auf Qualität, Kontraste und Lesbarkeit.")
     
     uploaded_file = st.file_uploader("Bild auswählen...", type=["jpg", "jpeg", "png"])
     
     if uploaded_file is not None:
-        image = Image.open(uploaded_file).convert("RGB")
-        st.image(image, caption="Hochgeladenes Bild", width=400)
+        file_bytes = np.asarray(bytearray(uploaded_file.read()), dtype=np.uint8)
+        opencv_img = cv2.imdecode(file_bytes, 1)
         
-        if vision_model is None:
-            st.error("KI-Modell konnte nicht geladen werden. Stelle sicher, dass `torch` und `torchvision` installiert sind.")
-        else:
-            with st.spinner("AI analysiert Bildinhalt..."):
-                # Bild-Vorverarbeitung für das Neuronale Netz
-                preprocess = transforms.Compose([
-                    transforms.Resize(256),
-                    transforms.CenterCrop(224),
-                    transforms.ToTensor(),
-                    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-                ])
-                input_tensor = preprocess(image)
-                input_batch = input_tensor.unsqueeze(0)
+        st.image(uploaded_file, caption="Hochgeladenes Taktikfoto", width=350)
+        
+        with st.spinner("Computer Vision Analyse läuft..."):
+            # Berechnung von Bildstatistiken via OpenCV
+            gray = cv2.cvtColor(opencv_img, cv2.COLOR_BGR2GRAY)
+            schaerfe = cv2.Laplacian(gray, cv2.CV_64F).var()
+            helligkeit = np.mean(gray)
+            
+            st.markdown("#### 📊 Analyseergebnis der KI:")
+            if schaerfe < 100:
+                st.error(f"⚠️ **Bild ist unscharf** ({schaerfe:.1f} Var). Details auf Taktikboards könnten verschwommen sein.")
+            else:
+                st.success(f"✅ **Gute Schärfe** ({schaerfe:.1f} Var). Linien und Spielernamen sind gut lesbar.")
                 
-                # Klassifikation ausführen
-                with torch.no_grad():
-                    output = vision_model(input_batch)
-                probabilities = torch.nn.functional.softmax(output[0], dim=0)
-                
-                # Top 3 Ergebnisse holen
-                top3_prob, top3_catid = torch.topk(probabilities, 3)
-                
-                st.markdown("#### 🤖 Erkannte Objekte / Szenen:")
-                for i in range(top3_prob.size(0)):
-                    label = imagenet_labels[top3_catid[i]]
-                    wahrscheinlichkeit = top3_prob[i].item() * 100
-                    st.write(f"**{i+1}. {label.title()}** - {wahrscheinlichkeit:.2f}% Match")
+            if helligkeit < 50:
+                st.warning(f"🌙 **Bild ist zu dunkel** ({helligkeit:.1f}/255). Erhöhe die Belichtung für bessere Analyse.")
+            elif helligkeit > 200:
+                st.warning(f"☀️ **Bild ist überbelichtet** ({helligkeit:.1f}/255). Details könnten verloren gehen.")
+            else:
+                st.success(f"☀️ **Optimale Belichtung** ({helligkeit:.1f}/255).")
     st.markdown('</div>', unsafe_allow_html=True)
 
-# --- TAB 7: EIGENES FEATURE (Taktik & xG-Rechner) ---
+# --- TAB 7: EXTRA TAKTIK FEATURE ---
 with tab7:
     st.markdown('<div class="custom-card"><h3>📊 Live-Chance & xG-Analyse</h3>', unsafe_allow_html=True)
-    st.write("Berechne die statistische Wahrscheinlichkeit (Expected Goals), ob ein Torschuss im Netz landet, um fundierte Taktik-Entscheidungen zu treffen.")
-    
     distanz = st.slider("Entfernung zum Tor (in Metern):", 1, 50, 12)
     winkel = st.slider("Schusswinkel (90° = Zentral vor dem Tor):", 10, 90, 90)
-    verteidiger = st.radio("Druck durch Gegenspieler:", ["Keine (Freie Bahn)", "Mäßig (Bedrängnis)", "Stark (Zustestellt)"])
+    verteidiger = st.radio("Druck durch Gegenspieler:", ["Keine (Freie Bahn)", "Mäßig", "Stark"])
     
-    # Vereinfachter, mathematischer xG-Algorithmus
     base_xg = 0.85 if distanz < 7 else (1 / (distanz * 0.15))
-    angle_factor = winkel / 90
-    def_factor = 1.0 if verteidiger == "Keine (Freie Bahn)" else (0.5 if verteidiger == "Mäßig (Bedrängnis)" else 0.15)
+    def_factor = 1.0 if verteidiger == "Keine (Freie Bahn)" else (0.5 if verteidiger == "Mäßig" else 0.15)
+    final_xg = min(0.99, max(0.01, base_xg * (winkel / 90) * def_factor))
     
-    final_xg = min(0.99, max(0.01, base_xg * angle_factor * def_factor))
-    
-    st.metric("Expected Goal Wert (xG-Faktor)", f"{final_xg:.2f}")
-    if final_xg > 0.6: st.success("🔥 Hochkarätige Torchance! Hier muss geschossen werden.")
-    elif final_xg > 0.25: st.warning("📐 Gute Gelegenheit. Ein überlegter Abschluss lohnt sich.")
-    else: st.error("🛑 Geringe Erfolgsaussicht. Passspiel oder Flanke wäre taktisch klüger.")
+    st.metric("Expected Goal Wert (xG-Wahrscheinlichkeit)", f"{final_xg:.2f}")
+    if final_xg > 0.5: st.success("🔥 Erstklassige Torchance!")
+    else: st.error("🛑 Geringe Erfolgsaussicht. Ein Pass wäre klüger.")
     st.markdown('</div>', unsafe_allow_html=True)
